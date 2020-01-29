@@ -2,7 +2,8 @@ ledPin  =  13 #;      // the number of the LED pin
 
 
 def setup(a: int, b: int):
-  myfunc(3+2)
+  c : int = 8
+  myfunc(b + a/c)
   #// put your setup code here, to run once:
   Serial.begin(9600)
 
