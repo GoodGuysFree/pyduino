@@ -7,10 +7,8 @@ from pprint import pprint
 from first_pass import FirstPass
 from second_pass import SecondPass
 
-
-def main():
-    with open("test.py", "r") as source:
-        tree = ast.parse(source.read())
+def generate(source):
+    tree = ast.parse(source.read())
 
     # First step - generate symbol tables, etc.
     #print("=== First Pass ===")
@@ -20,6 +18,10 @@ def main():
     second_pass = SecondPass(first_pass)
     second_pass.visit(tree)
 
+
+def main():
+    with open(sys.argv[1], "r") as source:
+        generate(source)
 
 if __name__ == "__main__":
     main()
