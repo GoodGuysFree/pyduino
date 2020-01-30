@@ -12,12 +12,19 @@ class FirstPass(ast.NodeVisitor):
         self.classes = {}
         self.funcs = {}
         self.func_args = set()
+        self.globals = {}  # key = scope, val = list of names
         self.curr_scope = []
 
-    def _scoped_sym(self, symbol):
+    def _current_scope(self):
         scope_string = ""
         if len(self.curr_scope) > 0:
-            scope_string = "::".join(self.curr_scope) + "::"
+            scope_string = "::".join(self.curr_scope)
+        return scope_string
+
+    def _scoped_sym(self, symbol):
+        scope_string = self._current_scope()
+        if len(self.curr_scope) > 0:
+            scope_string += "::"
         return scope_string + symbol
 
     def _symbol_type(self, scoped_symbol, default=None):
@@ -29,7 +36,11 @@ class FirstPass(ast.NodeVisitor):
     def find_local_vars(self, scope):
         local_vars_and_args = [x for x in self.symbols if x.startswith(f"{scope}::")]
         local_vars = [x for x in local_vars_and_args if x not in self.func_args]
-        return sorted(local_vars)
+        only_locals = [x for x in local_vars if f"{scope}::{x}" not in self.globals.get(scope, set())]
+        return sorted(only_locals)
+
+    def is_global(self, scope, var_name):
+        return var_name in self.globals.get(scope, set())
 
     def visit_AnnAssign(self, node, implicit_type=None):
         try:
@@ -56,6 +67,12 @@ class FirstPass(ast.NodeVisitor):
         scoped_sym = scope_string + target
         t_type = self.types.get(scoped_sym, "int")
         self.visit_AnnAssign(node, implicit_type=t_type)
+
+    def visit_Global(self, node):
+        curr_scope = self._current_scope()
+        names = self.globals.get(curr_scope, set())
+        names.update(node.names)
+        self.globals[curr_scope] = names
 
     def visit_FunctionDef(self, node):
         self.curr_scope.append(node.name)

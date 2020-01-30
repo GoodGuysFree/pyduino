@@ -26,6 +26,7 @@ class SecondPass(ast.NodeVisitor):
         self.out_string = ""
         self.curr_scope = []
         self.first_pass = first_pass
+        self.declared = set()
 
     def _current_scope(self):
         scope_string = ""
@@ -81,6 +82,9 @@ class SecondPass(ast.NodeVisitor):
         if self.indent_level >= INDENT_STEP:
             self.indent_level -= INDENT_STEP
 
+    def visit_Global(self, node):
+        pass
+
     def visit_Module(self, node):
         self.generic_visit(node)
 
@@ -89,11 +93,18 @@ class SecondPass(ast.NodeVisitor):
             target = node.target.id
         else:
             target = override_target
-        scoped_sym = self._scoped_sym(target)
+        if self.first_pass.is_global(self._current_scope(), target):
+            scoped_sym = target
+        else:
+            scoped_sym = self._scoped_sym(target)
         t_type = self._symbol_type(scoped_sym)
         c_type = python_type_to_c_type[t_type]
         value = self.visit(node.value)
-        c_assignment = f"{target} = {value};\n"
+        assignment_part = ""
+        if scoped_sym not in self.declared:
+            self.declared.add(scoped_sym)
+            assignment_part = f"{c_type} "
+        c_assignment = f"{assignment_part}{target} = {value};\n"
         self.output(c_assignment, indent=True)
 
     def visit_Assign(self, node):
@@ -111,6 +122,7 @@ class SecondPass(ast.NodeVisitor):
                 c_type = python_type_to_c_type[v_type]
                 v_name = self._local_name(var_name)
                 self.output(f"{c_type} {v_name};\n", indent=True)
+                self.declared.add(self._scoped_sym(v_name))
             self.output("\n")
 
     def visit_arguments(self, node):
