@@ -4,7 +4,7 @@ int g_var2;
 g_var1 = 4;
 g_var2 = 5;
 
-int test() {
+void test() {
     /* Local Variable Declarations */
     int g_var2;
 

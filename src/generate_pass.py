@@ -103,7 +103,8 @@ class GeneratePass(ScopeTracker):
 
     def visit_FunctionDef(self, node):
         func_name = node.name
-        self.output(f"\nint {func_name}")
+        ret_type = self.syms.find_ret_type(self.scoped_sym(func_name))
+        self.output(f"\n{ret_type} {func_name}")
         self.enter_scope(func_name)
         self.indent()
         self.generic_visit(node)    # visit all children of this node
@@ -148,6 +149,15 @@ class GeneratePass(ScopeTracker):
         tgt_s = " = ".join(tgt_names)
         value = self.visit(node.value)
         self.output(f"{tgt_s} = {value};\n", indent=True)
+
+    def visit_Return(self, node):
+        if node.value is None:
+            self.output("return;\n", indent=True)
+            return
+        s = "return ("
+        s += str(self.visit(node.value))
+        s += ");\n"
+        self.output(s, indent=True)
 
     def visit_Constant(self, node):
         return node.value

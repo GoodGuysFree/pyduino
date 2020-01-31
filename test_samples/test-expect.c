@@ -5,7 +5,7 @@ amit = 8;
 omri = 3;
 amit = omri = 5;
 
-int setup(int a, int b) {
+void setup(int a, int b) {
     /* Local Variable Declarations */
     int a;
     int b;
@@ -21,7 +21,7 @@ int setup(int a, int b) {
 
 
 
-int loop() {
+void loop() {
     /* Main Code */
     delay(1000);
     Serial.println("Ahem...");

@@ -69,6 +69,11 @@ class SymbolPass(ScopeTracker):
         assert scoped_sym not in self.types
         self.types[scoped_sym] = s_type
 
+    def set_func_ret_type(self, symbol, new_type):
+        assert symbol in self.types
+        assert self.types[symbol] == "func"
+        self.types[symbol] = f"func:{new_type}"
+
     def handle_annotated_variable(self, var_name, var_type):
         '''An annotated assignment is local by definition'''
         scoped_target = self.scoped_sym(var_name)
@@ -89,6 +94,18 @@ class SymbolPass(ScopeTracker):
             return self.types[self.unscoped_sym(symbol)]
         else:
             raise Exception(f"Trying to find type for {symbol=} but it cannot be found.")
+
+    def find_ret_type(self, scoped_func_name):
+        stored_type = self.find_type(scoped_func_name)
+        if stored_type == 'func':
+            return 'void'
+        elif ':' in stored_type:
+            parts = stored_type.split(':')
+            assert len(parts) == 2
+            assert parts[0] == 'func'
+            return parts[1]
+        else:
+            raise Exception(f"Internal error trying to find ret type for {scoped_func_name}")
 
     @staticmethod
     def unscoped_sym(symbol):
@@ -127,12 +144,30 @@ class SymbolPass(ScopeTracker):
 
     def visit_FunctionDef(self, node):
         func_name = node.name
-        # Register this function
-        self.add_scoped_symbol_type(func_name, 'func')
+
+        # Register this function, first try to find return type
+        if node.returns is not None:
+            self.add_scoped_symbol_type(func_name, f"func:{node.returns.id}")
+        else:
+            self.add_scoped_symbol_type(func_name, 'func')  # In this case we will try in visit_Return
 
         self.enter_scope(func_name)
         self.generic_visit(node)    # visit all children of this node
         self.exit_scope(func_name)
+
+    def visit_Return(self, node):
+        if node.value is None:
+            type_of_this_return = "void"
+        else:
+            type_of_this_return = self.get_type_from_value(node.value)
+        known_type = self.find_type(self.current_scope())  # current scope is exactly our function...
+        if known_type == "func":
+            self.set_func_ret_type(self.current_scope(), type_of_this_return)
+        else:
+            if f"func:{type_of_this_return}" != known_type:
+                show_known_type = known_type.split(":")[1]
+                raise Exception(f"In line {node.lineno}: Function should return '{show_known_type}' "
+                                f"but this return statement is of type '{type_of_this_return}'")
 
     def visit_arg(self, node):
         arg_name = node.arg

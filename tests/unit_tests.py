@@ -10,6 +10,7 @@ test_files = [
     'test_unary_op.py',
     'test_arrays.py',
     'test_tuples.py',
+    'test_func_retval.py',
 ]
 
 
