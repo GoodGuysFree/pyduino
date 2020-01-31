@@ -7,6 +7,7 @@ int in_func() {
     /* Main Code */
     a = [4, 5, 6];
     print(a);
+    print(a[0]);
 }
 
 

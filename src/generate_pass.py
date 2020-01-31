@@ -188,6 +188,9 @@ class GeneratePass(ScopeTracker):
             s = f"-{s}"
         return s
 
+    def visit_Index(self, node):
+        return str(self.visit(node.value))
+
     def visit_Call(self, node):
         if isinstance(node.func, ast.Attribute):
             self.output(node.func.value.id + "." + node.func.attr, indent=True)
@@ -204,6 +207,11 @@ class GeneratePass(ScopeTracker):
                     value = self.visit(arg)
                     if isinstance(value, str):
                         value = f'"{value}"'
+                elif isinstance(arg, ast.Subscript):
+                    value = self.visit(arg.value)
+                    value += "["
+                    value += self.visit(arg.slice)
+                    value += "]"
                 elif isinstance(arg, ast.Name):
                     value = arg.id
                 elif isinstance(arg, ast.BinOp):
