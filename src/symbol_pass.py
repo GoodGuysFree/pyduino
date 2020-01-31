@@ -24,6 +24,17 @@ class SymbolPass(ScopeTracker):
                 return 'float'
             else:
                 raise Exception(f"Unexpected value type: {value}")
+        elif isinstance(value_node, ast.UnaryOp):
+            assert isinstance(value_node.op, ast.USub) or isinstance(value_node.op, ast.UAdd)
+            return self.get_type_from_value(value_node.operand)
+        elif isinstance(value_node, ast.Name):
+            target = self.scoped_sym(value_node.id)
+            return self.find_type(target)
+        elif isinstance(value_node, ast.BinOp):
+            l_type = self.get_type_from_value(value_node.left)
+            r_type = self.get_type_from_value(value_node.right)
+            assert l_type == r_type
+            return l_type
         else:
             raise Exception(f"Unexpected value_node type: {value_node}")
 

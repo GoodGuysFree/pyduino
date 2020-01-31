@@ -136,13 +136,19 @@ class GeneratePass(ScopeTracker):
         self.generic_visit(node)
 
     def visit_Expr(self, node):
-        self.generic_visit(node)
+        return self.generic_visit(node)
 
     def visit_BinOp(self, node):
         left = self.visit(node.left)
         op_s = binop_to_string[node.op.__class__]
         right = self.visit(node.right)
         return f"({left} {op_s} {right})"
+
+    def visit_UnaryOp(self, node):
+        s = self.visit(node.operand)
+        if isinstance(node.op, ast.USub):
+            s = f"-{s}"
+        return s
 
     def visit_Call(self, node):
         if isinstance(node.func, ast.Attribute):
@@ -173,6 +179,6 @@ class GeneratePass(ScopeTracker):
         """Visit a node."""
         method = 'visit_' + node.__class__.__name__
         visitor = getattr(self, method, self.generic_visit)
-        #if visitor == self.generic_visit:
-        #    print(f"Would call {method} {node!r}")
+        if visitor == self.generic_visit:
+            print(f"Would call {method} {node!r}")
         return visitor(node)
