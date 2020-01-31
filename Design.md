@@ -35,12 +35,13 @@ will use the standard `::` to connect elements. For example, consider this code 
         return result
         
 Here are the fully qualified scoped-names of the symbols in the above fragment:
-| Code Line | Symbol | Scoped Symbol |
-|-----------|--------|---------------|
-|`var1 : int = 0`|`var1`|`var1`|
-|`def func(arg1: int):`|`func`|`func`|
-|`def func(arg1: int):`|`arg1`|`func::arg1`|
-|`result = var1 + arg1`|`result`|`func::result`|
+
+    | Code Line            | Symbol  | Scoped Symbol  |
+    |----------------------|---------|----------------|
+    | var1 : int = 0       | var1    | var1           |
+    | def func(arg1: int): | func    | func           |
+    | def func(arg1: int): | arg1    | func::arg1     |
+    | result = var1 + arg1 | result  | func::result   |
 
 ### Variable Types - First Pass
 In the first implementation, only integers will be supported. During the first pass,
