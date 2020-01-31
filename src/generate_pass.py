@@ -164,6 +164,9 @@ class GeneratePass(ScopeTracker):
         s += "]"
         return s
 
+    def visit_Tuple(self, node):
+        return self.visit_List(node)
+
     def visit_Name(self, node):
         return node.id
 

@@ -9,6 +9,7 @@ test_files = [
     'test_global.py',
     'test_unary_op.py',
     'test_arrays.py',
+    'test_tuples.py',
 ]
 
 
@@ -18,19 +19,33 @@ def get_expect_filename(filename):
 
 
 # Rename this to test_ to force re-gen (use with care)
+
+def generate_expected_file(srcfile, expfile):
+    exp_f = open(expfile, 'w')
+    tree = ast.parse(open(srcfile).read())
+    symbols = SymbolPass(tree)
+    out_file = io.StringIO("")
+    GeneratePass(symbols, tree, out_file)
+    out_file.seek(0, io.SEEK_SET)
+    out_text = out_file.read()
+    exp_f.write(out_text)
+    exp_f.close()
+    return out_text
+
+
 def un_test_generate_expect_files():
     for test in test_files:
         exp_fn = get_expect_filename(test)
-        exp_f = open(exp_fn, 'w')
-        tree = ast.parse(open(test).read())
-        symbols = SymbolPass(tree)
-        GeneratePass(symbols, tree, exp_f)
+        generate_expected_file(test, exp_fn)
 
 
 def test_all_files():
     for test in test_files:
         exp_file = get_expect_filename(test)
-        exp_text = open(exp_file).read()
+        try:
+            exp_text = open(exp_file).read()
+        except IOError:
+            exp_text = generate_expected_file(test, exp_file)
         # Now generate the thing...
         out_file = io.StringIO("")
         tree = ast.parse(open(test).read())
