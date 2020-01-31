@@ -11,6 +11,7 @@ test_files = [
     'test_arrays.py',
     'test_tuples.py',
     'test_func_retval.py',
+    'test_sketch1.py',
 ]
 
 
