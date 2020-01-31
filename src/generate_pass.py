@@ -74,6 +74,9 @@ class GeneratePass(ScopeTracker):
     # Visit Functions
     #
 
+    def visit_Global(self, node):
+        pass
+
     def visit_Module(self, node):
         self.emit_scope_local_decls()
         self.generic_visit(node)
