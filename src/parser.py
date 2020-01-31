@@ -8,13 +8,16 @@ from generate_pass import GeneratePass
 from symbol_pass import SymbolPass
 
 
-def generate(source):
+def generate(source, outfile=None):
+    if outfile is None:
+        outfile = sys.stdout
+
     tree = ast.parse(source.read())
 
     symbols = SymbolPass(tree)
     #symbols.report()
 
-    GeneratePass(symbols, tree)
+    GeneratePass(symbols, tree, outfile)
 
 
 def main():

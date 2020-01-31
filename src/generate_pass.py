@@ -3,7 +3,7 @@ from pprint import pprint
 
 from scope_tracker import ScopeTracker
 
-INDENT_STEP = 2
+INDENT_STEP = 4
 
 binop_to_string = {
     ast.Add:    '+',
@@ -22,11 +22,13 @@ python_type_to_c_type = {
 
 
 class GeneratePass(ScopeTracker):
-    def __init__(self, symbols, tree):
+    def __init__(self, symbols, tree, output_file):
         super().__init__()
         self.syms = symbols
         self.indent_level = 0
         self.out_string = ""
+        self.outf = output_file
+
         # Local context stuff
         self.num_arguments = 0
 
@@ -49,7 +51,7 @@ class GeneratePass(ScopeTracker):
         else:
             self.out_string += s
         if len(self.out_string) > 0 and self.out_string[-1] == '\n':
-            print(self.out_string[:-1])
+            self.outf.write(self.out_string)
             self.out_string = ''
 
     def indent(self):
@@ -78,7 +80,7 @@ class GeneratePass(ScopeTracker):
         local_syms = self.syms.find_local_syms(self.current_scope())
         if len(local_syms) > 0 and self.current_scope() != "":
             self.output("/* Local Variable Declarations */\n", indent=True)
-        for name in local_syms:
+        for name in sorted(local_syms):
             local_name = self.syms.unscoped_sym(name)
             local_type = self.syms.find_type(name)
             if ':' in local_type:   # advanced types, like list:int etc.
