@@ -56,6 +56,12 @@ global scope will use the empty string as the key), and the value is the list of
 known at this scope. This list of symbols will include the symbol's complete scope, so
 that a global variable will appear un-scoped in this list.
 
+### Handling Variables with Unknown Types
+Hopefully, we write good code and annotate our types. However, we can find the type from the
+type of the value being assigned, in assignments. For function arguments, we know about the 
+argument on top but if it is not annotated, we will add the type in a lazy fashion, at a
+later time, i.e. when we see the first assignment to the variable.
+
 ### Second Pass - Generation
 During the second pass, the first AST element we encounter is the Module. This lets us
 add C `#include` directives, and emit declarations for all global variables. In this pass

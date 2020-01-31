@@ -3,35 +3,15 @@ from pprint import pprint
 
 # scoped-symbol:
 # <func/class>::<symbol>
+from scope_tracker import ScopeTracker
 
 
-class SymbolPass(ast.NodeVisitor):
+class SymbolPass(ScopeTracker):
     def __init__(self, tree):
-        self.curr_scope = []
+        super().__init__()
         self.symbols = {}  # key = scope, value = set of scoped symbol-names in this scope
         self.types = {}    # key = scoped-symbol, value = python type
         self.visit(tree)
-
-    def current_scope(self):
-        scope_string = ""
-        if len(self.curr_scope) > 0:
-            scope_string = "::".join(self.curr_scope)
-        return scope_string
-
-    def scoped_sym(self, symbol):
-        if symbol.find('::') >= 0:
-            return symbol
-        scope_string = self.current_scope()
-        if len(self.curr_scope) > 0:
-            scope_string += "::"
-        return scope_string + symbol
-
-    def enter_scope(self, scope):
-        self.curr_scope.append(scope)
-
-    def exit_scope(self, scope):
-        assert self.curr_scope[-1] == scope
-        self.curr_scope = self.curr_scope[:-1]
 
     def get_type_from_value(self, value_node):
         if isinstance(value_node, ast.Constant):
@@ -71,11 +51,39 @@ class SymbolPass(ast.NodeVisitor):
         assert scoped_sym not in self.types
         self.types[scoped_sym] = s_type
 
+    def handle_annotated_variable(self, var_name, var_type):
+        '''An annotated assignment is local by definition'''
+        scoped_target = self.scoped_sym(var_name)
+        known_type = self.types.get(scoped_target, var_type)
+        assert known_type == var_type
+        assert not self.is_known_in_scope(var_name)
+        self.add_symbol_to_scope(scoped_target)
+        self.add_scoped_symbol_type(scoped_target, var_type)
+
+    def find_local_syms(self, scope):
+        scope_syms = self.symbols.get(scope, set())
+        return set([x for x in scope_syms if x.startswith(scope)])
+
+    def find_type(self, symbol):
+        return self.types[symbol]
+
+    @staticmethod
+    def unscoped_sym(symbol):
+        if symbol.find('::') >= 0:
+            parts = symbol.split('::')
+            return parts[-1]
+        else:
+            return symbol
+
     def visit_Global(self, node):
         this_scope = self.current_scope()
         this_scope_symbols = self.symbols.get(this_scope, set())
         this_scope_symbols.update(node.names)
         self.symbols[this_scope] = this_scope_symbols
+
+    def visit_AnnAssign(self, node):
+        '''Assignment with annotation'''
+        self.handle_annotated_variable(node.target.id, node.annotation.id)
 
     def visit_Assign(self, node):
         '''Assignment without annotation:
@@ -103,12 +111,20 @@ class SymbolPass(ast.NodeVisitor):
         self.generic_visit(node)    # visit all children of this node
         self.exit_scope(func_name)
 
+    def visit_arg(self, node):
+        arg_name = node.arg
+        if node.annotation is not None:
+            arg_type = node.annotation.id
+            self.handle_annotated_variable(arg_name, arg_type)
+        else:  # So we know the argument, but not its type... We'll store it as a symbol but not its type
+            self.add_symbol_to_scope(self.scoped_sym(arg_name))
+
     def visit(self, node):
         """Visit a node."""
         method = 'visit_' + node.__class__.__name__
         visitor = getattr(self, method, self.generic_visit)
-        if visitor == self.generic_visit:
-            print(f"Would call {method} {node!r}")
+        #if visitor == self.generic_visit:
+        #    print(f"Would call {method} {node!r}")
         return visitor(node)
 
     def report(self):

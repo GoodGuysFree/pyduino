@@ -4,6 +4,7 @@ import sys
 import ast
 from pprint import pprint
 
+from generate_pass import GeneratePass
 from symbol_pass import SymbolPass
 
 
@@ -11,7 +12,9 @@ def generate(source):
     tree = ast.parse(source.read())
 
     symbols = SymbolPass(tree)
-    symbols.report()
+    #symbols.report()
+
+    GeneratePass(symbols, tree)
 
 
 def main():
