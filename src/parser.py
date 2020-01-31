@@ -4,24 +4,20 @@ import sys
 import ast
 from pprint import pprint
 
-from first_pass import FirstPass
-from second_pass import SecondPass
+from symbol_pass import SymbolPass
+
 
 def generate(source):
     tree = ast.parse(source.read())
 
-    # First step - generate symbol tables, etc.
-    #print("=== First Pass ===")
-    first_pass = FirstPass()
-    first_pass.visit(tree)
-    #print("### Second Pass ###")
-    second_pass = SecondPass(first_pass)
-    second_pass.visit(tree)
+    symbols = SymbolPass(tree)
+    symbols.report()
 
 
 def main():
     with open(sys.argv[1], "r") as source:
         generate(source)
+
 
 if __name__ == "__main__":
     main()
