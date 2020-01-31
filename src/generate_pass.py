@@ -129,6 +129,46 @@ class GeneratePass(ScopeTracker):
     def visit_Constant(self, node):
         return node.value
 
+    def visit_Name(self, node):
+        return node.id
+
+    def visit_Load(self, node):
+        self.generic_visit(node)
+
+    def visit_Expr(self, node):
+        self.generic_visit(node)
+
+    def visit_BinOp(self, node):
+        left = self.visit(node.left)
+        op_s = binop_to_string[node.op.__class__]
+        right = self.visit(node.right)
+        return f"({left} {op_s} {right})"
+
+    def visit_Call(self, node):
+        if isinstance(node.func, ast.Attribute):
+            self.output(node.func.value.id + "." + node.func.attr, indent=True)
+        else:
+            self.output(node.func.id, indent=True)
+        self.output("(")
+        if len(node.args) > 0:
+            self.num_arguments = 0
+            for arg in node.args:
+                if self.num_arguments > 0:
+                    self.output(", ")
+                self.num_arguments += 1
+                if isinstance(arg, ast.Constant):
+                    value = self.visit(arg)
+                    if isinstance(value, str):
+                        value = f'"{value}"'
+                elif isinstance(arg, ast.Name):
+                    value = arg.id
+                elif isinstance(arg, ast.BinOp):
+                    value = self.visit_BinOp(arg)
+                else:
+                    raise Exception(f"Unexpected {arg=}")
+                self.output(f"{value}")
+        self.output(");\n")
+
     def visit(self, node):
         """Visit a node."""
         method = 'visit_' + node.__class__.__name__
