@@ -59,6 +59,21 @@ class GeneratePass(ScopeTracker):
         if self.indent_level >= INDENT_STEP:
             self.indent_level -= INDENT_STEP
 
+    def emit_list_decl(self, parts, symbol):
+        assert len(parts) == 3
+        elem_type = parts[2]
+        list_size = parts[1]
+        self.output(f"{elem_type} {symbol}[{list_size}];", indent=True)
+
+    def emit_advanced_decl(self, adv_type, symbol):
+        assert ':' in adv_type
+        parts = adv_type.split(':')
+        selector = parts[0]
+        if selector == 'list':
+            self.emit_list_decl(parts, symbol)
+        else:
+            raise Exception(f"Unknown advanced type description {adv_type=}")
+
     def emit_scope_local_decls(self):
         local_syms = self.syms.find_local_syms(self.current_scope())
         if len(local_syms) > 0 and self.current_scope() != "":
@@ -66,7 +81,10 @@ class GeneratePass(ScopeTracker):
         for name in local_syms:
             local_name = self.syms.unscoped_sym(name)
             local_type = self.syms.find_type(name)
-            self.output(f"{local_type} {local_name};\n", indent=True)
+            if ':' in local_type:   # advanced types, like list:int etc.
+                self.emit_advanced_decl(local_type, local_name)
+            else:
+                self.output(f"{local_type} {local_name};\n", indent=True)
         if len(local_syms) > 0:
             self.output("\n")
 
@@ -131,6 +149,18 @@ class GeneratePass(ScopeTracker):
 
     def visit_Constant(self, node):
         return node.value
+
+    def visit_List(self, node):
+        s = "["
+        first = True
+        for elem in node.elts:
+            if first:
+                first = False
+            else:
+                s += ", "
+            s += str(self.visit(elem))
+        s += "]"
+        return s
 
     def visit_Name(self, node):
         return node.id

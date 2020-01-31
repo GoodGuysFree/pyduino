@@ -35,6 +35,13 @@ class SymbolPass(ScopeTracker):
             r_type = self.get_type_from_value(value_node.right)
             assert l_type == r_type
             return l_type
+        elif isinstance(value_node, ast.List):
+            list_size = len(value_node.elts)
+            if list_size == 0:
+                raise Exception("We are unable to handle empty lists, yet")
+            el0_type = self.get_type_from_value(value_node.elts[0])
+            assert all([self.get_type_from_value(x) == el0_type for x in value_node.elts])
+            return f"list:{list_size}:{el0_type}"
         else:
             raise Exception(f"Unexpected value_node type: {value_node}")
 
