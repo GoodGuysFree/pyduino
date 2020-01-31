@@ -65,7 +65,12 @@ class SymbolPass(ScopeTracker):
         return set([x for x in scope_syms if x.startswith(scope)])
 
     def find_type(self, symbol):
-        return self.types[symbol]
+        if symbol in self.types:
+            return self.types[symbol]
+        elif self.unscoped_sym(symbol) in self.types:
+            return self.types[self.unscoped_sym(symbol)]
+        else:
+            raise Exception(f"Trying to find type for {symbol=} but it cannot be found.")
 
     @staticmethod
     def unscoped_sym(symbol):

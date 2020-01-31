@@ -105,13 +105,22 @@ class GeneratePass(ScopeTracker):
         self.output(f"{scoped_typ} {node.arg}")
         self.generic_visit(node)
 
+    def visit_AnnAssign(self, node):
+        target = node.target.id
+        scoped_target = self.scoped_sym(target)
+        known_type = self.syms.find_type(scoped_target)
+        tgt_type = node.annotation.id
+        assert known_type == tgt_type
+        value = self.visit(node.value)
+        self.output(f"{target} = {value};\n", indent=True)
+
     def visit_Assign(self, node):
         targets = node.targets
-        tgt_type = self.syms.find_type(targets[0].id)
+        tgt_type = self.syms.find_type(self.scoped_sym(targets[0].id))
         tgt_names = []
         for target in targets:
             tgt_name = target.id
-            assert self.syms.find_type(tgt_name) == tgt_type
+            assert self.syms.find_type(self.scoped_sym(tgt_name)) == tgt_type
             tgt_names.append(target.id)
         tgt_s = " = ".join(tgt_names)
         value = self.visit(node.value)
