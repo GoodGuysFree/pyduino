@@ -6,15 +6,15 @@ from scope_tracker import ScopeTracker
 INDENT_STEP = 4
 
 binop_to_string = {
-    ast.Add:    '+',
-    ast.Sub:    '-',
-    ast.Mult:   '*',
-    ast.Div:    '/',
+    ast.Add: "+",
+    ast.Sub: "-",
+    ast.Mult: "*",
+    ast.Div: "/",
 }
 
 python_type_to_c_type = {
-    'int': 'int',
-    'float': 'double',
+    "int": "int",
+    "float": "double",
 }
 
 # scoped-symbol:
@@ -37,23 +37,23 @@ class GeneratePass(ScopeTracker):
         self.visit(tree)
 
     def indented(self, s):
-        return ' ' * self.indent_level + s
+        return " " * self.indent_level + s
 
     def output(self, s, indent=False):
         if indent:
-            if '\n' in s.rstrip('\n'):
+            if "\n" in s.rstrip("\n"):
                 lines = [self.indented(x).rstrip() for x in s.splitlines()]
                 line = "\n".join(lines)
-                if len(s) > 0 and s[-1] == '\n':
-                    line += '\n'
+                if len(s) > 0 and s[-1] == "\n":
+                    line += "\n"
                 self.out_string += line
             else:
                 self.out_string += self.indented(s)
         else:
             self.out_string += s
-        if len(self.out_string) > 0 and self.out_string[-1] == '\n':
+        if len(self.out_string) > 0 and self.out_string[-1] == "\n":
             self.outf.write(self.out_string)
-            self.out_string = ''
+            self.out_string = ""
 
     def indent(self):
         self.indent_level += INDENT_STEP
@@ -69,10 +69,10 @@ class GeneratePass(ScopeTracker):
         self.output(f"{elem_type} {symbol}[{list_size}];", indent=True)
 
     def emit_advanced_decl(self, adv_type, symbol):
-        assert ':' in adv_type
-        parts = adv_type.split(':')
+        assert ":" in adv_type
+        parts = adv_type.split(":")
         selector = parts[0]
-        if selector == 'list':
+        if selector == "list":
             self.emit_list_decl(parts, symbol)
         else:
             raise Exception(f"Unknown advanced type description {adv_type=}")
@@ -84,7 +84,7 @@ class GeneratePass(ScopeTracker):
         for name in sorted(local_syms):
             local_name = self.syms.unscoped_sym(name)
             local_type = self.syms.find_type(name)
-            if ':' in local_type:   # advanced types, like list:int etc.
+            if ":" in local_type:  # advanced types, like list:int etc.
                 self.emit_advanced_decl(local_type, local_name)
             else:
                 self.output(f"{local_type} {local_name};\n", indent=True)
@@ -108,7 +108,7 @@ class GeneratePass(ScopeTracker):
         self.output(f"\n{ret_type} {func_name}")
         self.enter_scope(func_name)
         self.indent()
-        self.generic_visit(node)    # visit all children of this node
+        self.generic_visit(node)  # visit all children of this node
         self.outdent()
         self.exit_scope(func_name)
         self.output("}\n\n\n")
@@ -234,7 +234,7 @@ class GeneratePass(ScopeTracker):
 
     def visit(self, node):
         """Visit a node."""
-        method = 'visit_' + node.__class__.__name__
+        method = "visit_" + node.__class__.__name__
         visitor = getattr(self, method, self.generic_visit)
         if visitor == self.generic_visit:
             print(f"Would call {method} {node!r}")

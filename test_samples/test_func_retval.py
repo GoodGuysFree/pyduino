@@ -14,7 +14,7 @@ def float_ret_annotation_float_ret() -> float:
 
 
 def no_ret_annotation_1_int_ret():
-    a : int = 76
+    a: int = 76
     return a / 2
 
 
@@ -24,6 +24,6 @@ def no_ret_annotation_ret_wo_val():
 
 
 def no_ret_annotation_complex_ret():
-    a : float = 8
-    b : float = 9
+    a: float = 8
+    b: float = 9
     return a + b

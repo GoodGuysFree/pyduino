@@ -5,25 +5,26 @@ from generate_pass import GeneratePass
 from symbol_pass import SymbolPass
 
 test_files = [
-    'test.py',
-    'test_global.py',
-    'test_unary_op.py',
-    'test_arrays.py',
-    'test_tuples.py',
-    'test_func_retval.py',
-    'test_sketch1.py',
+    "test.py",
+    "test_global.py",
+    "test_unary_op.py",
+    "test_arrays.py",
+    "test_tuples.py",
+    "test_func_retval.py",
+    "test_sketch1.py",
 ]
 
 
 def get_expect_filename(filename):
-    base_name = filename.split('.')[0]
+    base_name = filename.split(".")[0]
     return f"{base_name}-expect.c"
 
 
 # Rename this to test_ to force re-gen (use with care)
 
+
 def generate_expected_file(srcfile, expfile):
-    exp_f = open(expfile, 'w')
+    exp_f = open(expfile, "w")
     text = open(srcfile).read()
     lines = text.splitlines()
     tree = ast.parse(text)
@@ -66,4 +67,3 @@ def test_all_files():
             with open(f"out-{exp_file}", "w") as f:
                 f.write(out_text)
         assert out_text == exp_text
-

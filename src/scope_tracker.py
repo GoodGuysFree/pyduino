@@ -1,5 +1,6 @@
 import ast
 
+
 class ScopeTracker(ast.NodeVisitor):
     def __init__(self):
         self.curr_scope = []
@@ -11,7 +12,7 @@ class ScopeTracker(ast.NodeVisitor):
         return scope_string
 
     def scoped_sym(self, symbol):
-        if symbol.find('::') >= 0:
+        if symbol.find("::") >= 0:
             return symbol
         scope_string = self.current_scope()
         if len(self.curr_scope) > 0:

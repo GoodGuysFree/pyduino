@@ -17,7 +17,7 @@ def generate(source, outfile=None):
 
     lines = text.splitlines()
     symbols = SymbolPass(tree, lines)
-    #symbols.report()
+    # symbols.report()
 
     GeneratePass(symbols, tree, outfile, lines)
 
