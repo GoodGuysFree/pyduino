@@ -1,5 +1,4 @@
 import ast
-from pprint import pprint
 
 # scoped-symbol:
 # <func/class>::<symbol>
@@ -8,30 +7,16 @@ from scope_tracker import ScopeTracker
 
 class SymbolPass(ScopeTracker):
     def __init__(self, tree, lines):
-        super().__init__()
-        self.symbols = (
-            {}
-        )  # key = scope, value = set of scoped symbol-names in this scope
+        super().__init__(lines)
+        # self.symbols: dictionary with:
+        #   key = scope
+        #   value = set of scoped symbol-names in this scope
+        self.symbols = {}
         self.types = {}  # key = scoped-symbol, value = python type
         self.lines = lines
 
-        # Context Stuff
-        self.current_node = None
-
         # Run the tree
         self.visit(tree)
-
-    def exception_msg(self, text, node=None):
-        if node is None:
-            node = self.current_node
-        msg = f"In line {node.lineno}: ["
-        src_lines = self.lines[node.lineno - 1 : node.end_lineno]
-        src_lines[-1] = src_lines[-1][: node.end_col_offset]
-        src_lines[0] = src_lines[0][node.col_offset :]
-        src_text = " ".join(src_lines)
-        msg += src_text
-        msg += "] " + text
-        return msg
 
     def get_type_from_value(self, value_node):
         if isinstance(value_node, ast.Constant):

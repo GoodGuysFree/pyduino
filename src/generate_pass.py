@@ -23,31 +23,17 @@ python_type_to_c_type = {
 
 class GeneratePass(ScopeTracker):
     def __init__(self, symbols, tree, output_file, lines):
-        super().__init__()
+        super().__init__(lines)
         self.syms = symbols
         self.indent_level = 0
         self.out_string = ""
         self.outf = output_file
-        self.lines = lines
 
         # Local context stuff
         self.num_arguments = 0
-        self.current_node = None
 
         # Run the tree
         self.visit(tree)
-
-    def exception_message(self, text, node=None):
-        if node is None:
-            node = self.current_node
-        msg = f"In line {node.lineno}: ["
-        src_lines = self.lines[node.lineno - 1 : node.end_lineno]
-        src_lines[-1] = src_lines[-1][: node.end_col_offset]
-        src_lines[0] = src_lines[0][node.col_offset :]
-        src_text = " ".join(src_lines)
-        msg += src_text
-        msg += "] " + text
-        return msg
 
     def indented(self, s):
         return " " * self.indent_level + s
@@ -88,7 +74,10 @@ class GeneratePass(ScopeTracker):
         if selector == "list":
             self.emit_list_decl(parts, symbol)
         else:
-            raise Exception(f"Unknown advanced type description {adv_type=}")
+            msg = self.exception_msg(
+                f"Unknown advanced type description {adv_type=}"
+            )
+            raise Exception(msg)
 
     def emit_scope_local_decls(self):
         # Passing self.current_node into self.syms methods for exception handling

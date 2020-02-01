@@ -1,8 +1,9 @@
-import ast
+from pytoc_nodevisitor import PytocNodeVisitor
 
 
-class ScopeTracker(ast.NodeVisitor):
-    def __init__(self):
+class ScopeTracker(PytocNodeVisitor):
+    def __init__(self, lines):
+        super().__init__(lines)
         self.curr_scope = []
 
     def current_scope(self):
