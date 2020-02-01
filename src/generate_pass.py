@@ -1,9 +1,13 @@
 import ast
+from _ast import AST
+from ast import iter_fields
 from pprint import pprint
 
 from scope_tracker import ScopeTracker
 
 INDENT_STEP = 4
+
+DEBUG_SHOW_NODES = False
 
 binop_to_string = {
     ast.Add: "+",
@@ -39,7 +43,7 @@ class GeneratePass(ScopeTracker):
         return " " * self.indent_level + s
 
     def output(self, s, indent=False):
-        if indent:
+        if indent and (len(self.out_string) == 0 or self.out_string[-1] == "\n"):
             if "\n" in s.rstrip("\n"):
                 lines = [self.indented(x).rstrip() for x in s.splitlines()]
                 line = "\n".join(lines)
@@ -65,7 +69,7 @@ class GeneratePass(ScopeTracker):
         assert len(parts) == 3
         elem_type = parts[2]
         list_size = parts[1]
-        self.output(f"{elem_type} {symbol}[{list_size}];", indent=True)
+        self.output(f"{elem_type} {symbol}[{list_size}];\n", indent=True)
 
     def emit_advanced_decl(self, adv_type, symbol):
         assert ":" in adv_type
@@ -109,7 +113,14 @@ class GeneratePass(ScopeTracker):
         self.output(f"\n{ret_type} {func_name}")
         self.enter_scope(func_name)
         self.indent()
+        # Ugly hack to avoid seeing the return type again...
+        keep_returns = None
+        if node.returns is not None:
+            keep_returns = node.returns
+            node.returns = None
         self.generic_visit(node)  # visit all children of this node
+        if keep_returns is not None:
+            node.returns = keep_returns
         self.outdent()
         self.exit_scope(func_name)
         self.output("}\n\n\n")
@@ -124,13 +135,14 @@ class GeneratePass(ScopeTracker):
 
     def visit_arg(self, node):
         # Passing node into self.syms methods for exception handling
+        s = ""
         if self.num_arguments > 0:
-            self.output(", ")
+            s += ", "
         self.num_arguments += 1
         scoped_sym = self.scoped_sym(node.arg)
         scoped_typ = self.syms.find_type(scoped_sym, node=node)
-        self.output(f"{scoped_typ} {node.arg}")
-        self.generic_visit(node)
+        s += f"{scoped_typ} {node.arg}"
+        return s
 
     def visit_AnnAssign(self, node):
         # Passing node into self.syms methods for exception handling
@@ -189,7 +201,8 @@ class GeneratePass(ScopeTracker):
         self.generic_visit(node)
 
     def visit_Expr(self, node):
-        return self.generic_visit(node)
+        self.generic_visit(node)
+        self.output(";\n")
 
     def visit_BinOp(self, node):
         left = self.visit(node.left)
@@ -208,15 +221,15 @@ class GeneratePass(ScopeTracker):
 
     def visit_Call(self, node):
         if isinstance(node.func, ast.Attribute):
-            self.output(node.func.value.id + "." + node.func.attr, indent=True)
+            s = node.func.value.id + "." + node.func.attr
         else:
-            self.output(node.func.id, indent=True)
-        self.output("(")
+            s = node.func.id
+        s += "("
         if len(node.args) > 0:
             self.num_arguments = 0
             for arg in node.args:
                 if self.num_arguments > 0:
-                    self.output(", ")
+                    s += ", "
                 self.num_arguments += 1
                 if isinstance(arg, ast.Constant):
                     value = self.visit(arg)
@@ -233,14 +246,38 @@ class GeneratePass(ScopeTracker):
                     value = self.visit_BinOp(arg)
                 else:
                     raise Exception(f"Unexpected {arg=}")
-                self.output(f"{value}")
-        self.output(");\n")
+                s += f"{value}"
+        s += ")"
+        return s
 
     def visit(self, node):
         """Visit a node."""
         method = "visit_" + node.__class__.__name__
         visitor = getattr(self, method, self.generic_visit)
-        if visitor == self.generic_visit:
-            print(f"Would call {method} {node!r}")
+        if visitor == self.generic_visit or DEBUG_SHOW_NODES:
+            print(f"Going to call {method} {node!r}")
         self.current_node = node  # will be used for easy error reporting
         return visitor(node)
+
+    def generic_visit(self, node):
+        """Called if no explicit visitor function exists for a node."""
+        s = ""
+        for field, value in iter_fields(node):
+            if isinstance(value, list):
+                if DEBUG_SHOW_NODES:
+                    print(f"Iterating {node.__class__.__name__}.{field}")
+                for item in value:
+                    if isinstance(item, AST):
+                        if DEBUG_SHOW_NODES:
+                            print(f"Going to visit list item {item.__class__.__name__}")
+                        ret = self.visit(item)
+                        if ret is not None:
+                            s += str(ret)
+            elif isinstance(value, AST):
+                if DEBUG_SHOW_NODES:
+                    print(f"Going to visit value {value.__class__.__name__}")
+                ret = self.visit(value)
+                if ret is not None:
+                    s += str(ret)
+        if len(s) > 0:
+            self.output(s, indent=True)

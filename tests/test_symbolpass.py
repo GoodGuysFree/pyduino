@@ -31,6 +31,10 @@ def test_unsupported_data_type():
     )
 
 
+# def test_unsupported_dict():
+#     neg_test("map = dict()", "foo")
+
+
 def test_unhomogeneous_list():
     neg_test(
         "lst = [3, 4.5]",

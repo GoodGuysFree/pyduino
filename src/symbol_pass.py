@@ -54,16 +54,25 @@ class SymbolPass(ScopeTracker):
                     node=value_node,
                 )  # tested
             return l_type
-        elif isinstance(value_node, ast.List) or isinstance(value_node, ast.Tuple):
-            list_size = len(value_node.elts)
+        elif (
+            isinstance(value_node, ast.List)
+            or isinstance(value_node, ast.Tuple)
+            or (
+                isinstance(value_node, ast.Call)
+                and value_node.func.id in ("list", "tuple",)
+            )
+        ):
+            if isinstance(value_node, ast.Call):
+                elem_list = value_node.args
+            else:
+                elem_list = value_node.elts
+            list_size = len(elem_list)
             if list_size == 0:
                 raise self.exception(
                     "Empty lists not supported yet", node=value_node
                 )  # tested
-            t_el0 = self.get_type_from_value(value_node.elts[0])
-            same_as_el0 = [
-                self.get_type_from_value(x) == t_el0 for x in value_node.elts
-            ]
+            t_el0 = self.get_type_from_value(elem_list[0])
+            same_as_el0 = [self.get_type_from_value(x) == t_el0 for x in elem_list]
             if not all(same_as_el0):
                 raise self.exception(
                     "Only homogeneous lists and tuples are supported.", node=value_node

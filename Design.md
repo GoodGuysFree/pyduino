@@ -67,4 +67,12 @@ During the second pass, the first AST element we encounter is the Module. This l
 add C `#include` directives, and emit declarations for all global variables. In this pass
 we also track the scope we're in, in the same way as we do in the first pass.
 
-The rest is TBW.
+
+Strings
+-------
+The plan is to use [Simple Dynamic Strings](https://github.com/antirez/sds).
+
+
+Dictionaries
+------------
+Planning to use [phsym/hashtable.c](https://gist.github.com/phsym/4605704).
