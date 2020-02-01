@@ -24,10 +24,12 @@ def get_expect_filename(filename):
 
 def generate_expected_file(srcfile, expfile):
     exp_f = open(expfile, 'w')
-    tree = ast.parse(open(srcfile).read())
-    symbols = SymbolPass(tree)
+    text = open(srcfile).read()
+    lines = text.splitlines()
+    tree = ast.parse(text)
+    symbols = SymbolPass(tree, lines)
     out_file = io.StringIO("")
-    GeneratePass(symbols, tree, out_file)
+    GeneratePass(symbols, tree, out_file, lines)
     out_file.seek(0, io.SEEK_SET)
     out_text = out_file.read()
     exp_f.write(out_text)
@@ -50,9 +52,11 @@ def test_all_files():
             exp_text = generate_expected_file(test, exp_file)
         # Now generate the thing...
         out_file = io.StringIO("")
-        tree = ast.parse(open(test).read())
-        symbols = SymbolPass(tree)
-        GeneratePass(symbols, tree, out_file)
+        text = open(test).read()
+        lines = text.splitlines()
+        tree = ast.parse(text)
+        symbols = SymbolPass(tree, lines)
+        GeneratePass(symbols, tree, out_file, lines)
         # Now get the string to compare...
         out_file.seek(0, io.SEEK_SET)
         out_text = out_file.read()

@@ -22,12 +22,13 @@ python_type_to_c_type = {
 
 
 class GeneratePass(ScopeTracker):
-    def __init__(self, symbols, tree, output_file):
+    def __init__(self, symbols, tree, output_file, lines):
         super().__init__()
         self.syms = symbols
         self.indent_level = 0
         self.out_string = ""
         self.outf = output_file
+        self.lines = lines
 
         # Local context stuff
         self.num_arguments = 0

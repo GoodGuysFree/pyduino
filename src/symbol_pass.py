@@ -7,11 +7,22 @@ from scope_tracker import ScopeTracker
 
 
 class SymbolPass(ScopeTracker):
-    def __init__(self, tree):
+    def __init__(self, tree, lines):
         super().__init__()
         self.symbols = {}  # key = scope, value = set of scoped symbol-names in this scope
         self.types = {}    # key = scoped-symbol, value = python type
+        self.lines = lines
         self.visit(tree)
+
+    def exception_message(self, node, text):
+        msg = f"In line {node.lineno}: ["
+        src_lines = self.lines[node.lineno-1:node.end_lineno]
+        src_lines[-1] = src_lines[-1][:node.end_col_offset]
+        src_lines[0] = src_lines[0][node.col_offset:]
+        src_text = " ".join(src_lines)
+        msg += src_text
+        msg += "] " + text
+        return msg
 
     def get_type_from_value(self, value_node):
         if isinstance(value_node, ast.Constant):
@@ -19,13 +30,16 @@ class SymbolPass(ScopeTracker):
             if isinstance(value, int):
                 return 'int'
             elif isinstance(value, str):
-                raise Exception("Strings not yet supported")
+                msg = self.exception_message(value_node, "Strings not yet supported")
+                raise Exception(msg)
             elif isinstance(value, float):
                 return 'float'
             else:
-                raise Exception(f"Unexpected value type: {value}")
+                raise Exception(self.err_prefix(value_node) + f"Unsupported constant value type: {value}")
         elif isinstance(value_node, ast.UnaryOp):
-            assert isinstance(value_node.op, ast.USub) or isinstance(value_node.op, ast.UAdd)
+            if not (isinstance(value_node.op, ast.USub) or isinstance(value_node.op, ast.UAdd)):
+                msg = self.exception_message(value_node, "Only +/- unary operators supported.")
+                raise Exception(msg)
             return self.get_type_from_value(value_node.operand)
         elif isinstance(value_node, ast.Name):
             target = self.scoped_sym(value_node.id)
@@ -33,17 +47,22 @@ class SymbolPass(ScopeTracker):
         elif isinstance(value_node, ast.BinOp):
             l_type = self.get_type_from_value(value_node.left)
             r_type = self.get_type_from_value(value_node.right)
-            assert l_type == r_type
+            if l_type != r_type:
+                msg = self.exception_message(value_node, "We do not support different types on binary operators.")
+                raise Exception(msg)
             return l_type
         elif isinstance(value_node, ast.List) or isinstance(value_node, ast.Tuple):
             list_size = len(value_node.elts)
             if list_size == 0:
-                raise Exception("We are unable to handle empty lists, yet")
+                raise Exception(self.err_prefix(value_node) + "We are unable to handle empty lists, yet")
             el0_type = self.get_type_from_value(value_node.elts[0])
-            assert all([self.get_type_from_value(x) == el0_type for x in value_node.elts])
+            if not all([self.get_type_from_value(x) == el0_type for x in value_node.elts]):
+                msg = self.exception_message(value_node, "Only homogeneous lists and tuples are supported.")
+                raise Exception(msg)
             return f"list:{list_size}:{el0_type}"
         else:
-            raise Exception(f"Unexpected value_node type: {value_node}")
+            msg = self.exception_message(value_node, f"Cannot obtain type information from unexpected node of type {value_node}")
+            raise Exception(msg)
 
     def add_symbol_to_scope(self, symbol, scope=None):
         if scope is None:
@@ -64,9 +83,11 @@ class SymbolPass(ScopeTracker):
     def is_known_global(self, symbol):
         return self.is_known_in_scope(symbol, self.current_scope())
 
-    def add_scoped_symbol_type(self, s_name, s_type):
+    def add_scoped_symbol_type(self, s_name, s_type, node):
         scoped_sym = self.scoped_sym(s_name)
-        assert scoped_sym not in self.types
+        if scoped_sym in self.types:
+            msg = self.exception_message(node, f"Symbol {s_name} already has a type associated with it,")
+            raise Exception(msg)
         self.types[scoped_sym] = s_type
 
     def set_func_ret_type(self, symbol, new_type):
@@ -74,14 +95,19 @@ class SymbolPass(ScopeTracker):
         assert self.types[symbol] == "func"
         self.types[symbol] = f"func:{new_type}"
 
-    def handle_annotated_variable(self, var_name, var_type):
+    def handle_annotated_variable(self, var_name, var_type, node):
         '''An annotated assignment is local by definition'''
         scoped_target = self.scoped_sym(var_name)
         known_type = self.types.get(scoped_target, var_type)
-        assert known_type == var_type
-        assert not self.is_known_in_scope(var_name)
+        if known_type != var_type:
+            msg = self.exception_message(node, f"Variable {var_name} annotated as being of type {var_type} "
+                                               f"but it is already known as being of type {known_type}")
+            raise Exception(msg)
+        if self.is_known_in_scope(var_name):
+            msg = self.exception_message(node, f"Variable {var_name} is already known in scope {self.current_scope()}")
+            raise Exception(msg)
         self.add_symbol_to_scope(scoped_target)
-        self.add_scoped_symbol_type(scoped_target, var_type)
+        self.add_scoped_symbol_type(scoped_target, var_type, node)
 
     def find_local_syms(self, scope):
         scope_syms = self.symbols.get(scope, set())
@@ -123,7 +149,7 @@ class SymbolPass(ScopeTracker):
 
     def visit_AnnAssign(self, node):
         '''Assignment with annotation'''
-        self.handle_annotated_variable(node.target.id, node.annotation.id)
+        self.handle_annotated_variable(node.target.id, node.annotation.id, node)
 
     def visit_Assign(self, node):
         '''Assignment without annotation:
@@ -137,7 +163,7 @@ class SymbolPass(ScopeTracker):
             else:
                 scoped_target = self.scoped_sym(tgt_id)
             if scoped_target not in self.types:     # First time we see this, so store it
-                self.add_scoped_symbol_type(scoped_target, tgt_ty)
+                self.add_scoped_symbol_type(scoped_target, tgt_ty, node)
                 self.add_symbol_to_scope(scoped_target)
             known_type = self.types[scoped_target]
             assert known_type == tgt_ty
@@ -147,9 +173,9 @@ class SymbolPass(ScopeTracker):
 
         # Register this function, first try to find return type
         if node.returns is not None:
-            self.add_scoped_symbol_type(func_name, f"func:{node.returns.id}")
+            self.add_scoped_symbol_type(func_name, f"func:{node.returns.id}", node)
         else:
-            self.add_scoped_symbol_type(func_name, 'func')  # In this case we will try in visit_Return
+            self.add_scoped_symbol_type(func_name, 'func', node)  # In this case we will try in visit_Return
 
         self.enter_scope(func_name)
         self.generic_visit(node)    # visit all children of this node
@@ -173,7 +199,7 @@ class SymbolPass(ScopeTracker):
         arg_name = node.arg
         if node.annotation is not None:
             arg_type = node.annotation.id
-            self.handle_annotated_variable(arg_name, arg_type)
+            self.handle_annotated_variable(arg_name, arg_type, node)
         else:  # So we know the argument, but not its type... We'll store it as a symbol but not its type
             self.add_symbol_to_scope(self.scoped_sym(arg_name))
 

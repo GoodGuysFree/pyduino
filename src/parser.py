@@ -12,12 +12,14 @@ def generate(source, outfile=None):
     if outfile is None:
         outfile = sys.stdout
 
-    tree = ast.parse(source.read())
+    text = source.read()
+    tree = ast.parse(text)
 
-    symbols = SymbolPass(tree)
+    lines = text.splitlines()
+    symbols = SymbolPass(tree, lines)
     #symbols.report()
 
-    GeneratePass(symbols, tree, outfile)
+    GeneratePass(symbols, tree, outfile, lines)
 
 
 def main():
