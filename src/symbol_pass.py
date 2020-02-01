@@ -21,7 +21,9 @@ class SymbolPass(ScopeTracker):
     def get_type_from_value(self, value_node):
         if isinstance(value_node, ast.Constant):
             value = value_node.value
-            if isinstance(value, int):
+            if isinstance(value, bool):
+                return "bool"
+            elif isinstance(value, int):
                 return "int"
             elif isinstance(value, str):
                 raise self.exception(
@@ -37,11 +39,14 @@ class SymbolPass(ScopeTracker):
             if not (
                 isinstance(value_node.op, ast.USub)
                 or isinstance(value_node.op, ast.UAdd)
+                or isinstance(value_node.op, ast.Not)
             ):
                 raise self.exception(
                     "Only +/- unary operators supported.", node=value_node
                 )  # no way to test, afaik
             return self.get_type_from_value(value_node.operand)
+        elif isinstance(value_node, ast.Compare) or isinstance(value_node, ast.BoolOp):
+            return "bool"
         elif isinstance(value_node, ast.Name):
             target = self.scoped_sym(value_node.id)
             return self.find_type(target)

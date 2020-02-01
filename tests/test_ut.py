@@ -43,15 +43,29 @@ def un_test_generate_expect_files():
         generate_expected_file(test, exp_fn)
 
 
-def run_test_from_text(text):
+def run_test_from_text(text, headings=True):
     tree = ast.parse(text)
     lines = text.splitlines()
     symbols = SymbolPass(tree, lines)
     out_file = io.StringIO("")
-    GeneratePass(symbols, tree, out_file, lines)
+    GeneratePass(symbols, tree, out_file, lines, headings=headings)
     out_file.seek(0, io.SEEK_SET)
     out_text = out_file.read()
     return out_text
+
+
+def pos_test(code, expected_output):
+    output = run_test_from_text(code, headings=False)
+    assert output.strip() == expected_output.strip()
+
+
+def neg_test(code, expected_message):
+    try:
+        run_test_from_text(code, headings=False)
+    except Exception as e:
+        assert str(e).startswith(expected_message)
+    else:
+        assert False  # this test needs to see an exception...
 
 
 def test_all_files():

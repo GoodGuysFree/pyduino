@@ -1,16 +1,8 @@
-from tests.test_ut import run_test_from_text
+from tests.test_ut import neg_test
 
 
 # Negative tests for SymbolPass
 
-
-def neg_test(code, expected_message):
-    try:
-        run_test_from_text(code)
-    except Exception as e:
-        assert str(e).startswith(expected_message)
-    else:
-        assert False  # this test needs to see an exception...
 
 
 def test_no_exception_else_clause():
