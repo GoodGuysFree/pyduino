@@ -84,6 +84,8 @@ class SymbolPass(ScopeTracker):
                 )  # tested
 
             return f"list:{list_size}:{t_el0}"
+        elif isinstance(value_node, ast.Dict):
+            return "dict_t"
         else:
             raise self.exception(
                 f"Cannot obtain type information from unexpected node of type {value_node}",
