@@ -24,13 +24,15 @@ class SymbolPass(ScopeTracker):
             if isinstance(value, int):
                 return "int"
             elif isinstance(value, str):
-                raise self.exception("Strings not yet supported", node=value_node)  # tested
+                raise self.exception(
+                    "Strings not yet supported", node=value_node
+                )  # tested
             elif isinstance(value, float):
                 return "float"
             else:
                 raise self.exception(
                     f"Unsupported constant value type: {value}", node=value_node
-                )
+                )  # TODO: how to test this???
         elif isinstance(value_node, ast.UnaryOp):
             if not (
                 isinstance(value_node.op, ast.USub)
@@ -38,7 +40,7 @@ class SymbolPass(ScopeTracker):
             ):
                 raise self.exception(
                     "Only +/- unary operators supported.", node=value_node
-                )
+                )  # no way to test, afaik
             return self.get_type_from_value(value_node.operand)
         elif isinstance(value_node, ast.Name):
             target = self.scoped_sym(value_node.id)
@@ -50,12 +52,14 @@ class SymbolPass(ScopeTracker):
                 raise self.exception(
                     "We do not support different types on binary operators.",
                     node=value_node,
-                )
+                )  # tested
             return l_type
         elif isinstance(value_node, ast.List) or isinstance(value_node, ast.Tuple):
             list_size = len(value_node.elts)
             if list_size == 0:
-                raise self.exception("Empty lists not supported yet", node=value_node)
+                raise self.exception(
+                    "Empty lists not supported yet", node=value_node
+                )  # tested
             t_el0 = self.get_type_from_value(value_node.elts[0])
             same_as_el0 = [
                 self.get_type_from_value(x) == t_el0 for x in value_node.elts
@@ -63,7 +67,7 @@ class SymbolPass(ScopeTracker):
             if not all(same_as_el0):
                 raise self.exception(
                     "Only homogeneous lists and tuples are supported.", node=value_node
-                )
+                )  # tested
 
             return f"list:{list_size}:{t_el0}"
         else:
@@ -101,8 +105,15 @@ class SymbolPass(ScopeTracker):
         self.types[scoped_sym] = s_type
 
     def set_func_ret_type(self, symbol, new_type):
-        assert symbol in self.types
-        assert self.types[symbol] == "func"
+        if not symbol in self.types:
+            raise self.exception(
+                f"Trying to update function '{symbol}' return value type to '{new_type}' but function is not known"
+            )
+        known_type = self.types[symbol]
+        if known_type != "func":
+            raise self.exception(
+                f"Trying to update function '{symbol}' return value type to '{new_type}' but function is already has '{known_type}'"
+            )
         self.types[symbol] = f"func:{new_type}"
 
     def handle_annotated_variable(self, var_name, var_type):
