@@ -74,10 +74,7 @@ class GeneratePass(ScopeTracker):
         if selector == "list":
             self.emit_list_decl(parts, symbol)
         else:
-            msg = self.exception_msg(
-                f"Unknown advanced type description {adv_type=}"
-            )
-            raise Exception(msg)
+            raise self.exception(f"Unknown advanced type description {adv_type=}")
 
     def emit_scope_local_decls(self):
         # Passing self.current_node into self.syms methods for exception handling

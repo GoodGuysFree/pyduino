@@ -1,6 +1,5 @@
 import ast
 import io
-import pytest
 from generate_pass import GeneratePass
 from symbol_pass import SymbolPass
 
@@ -44,6 +43,17 @@ def un_test_generate_expect_files():
         generate_expected_file(test, exp_fn)
 
 
+def run_test_from_text(text):
+    tree = ast.parse(text)
+    lines = text.splitlines()
+    symbols = SymbolPass(tree, lines)
+    out_file = io.StringIO("")
+    GeneratePass(symbols, tree, out_file, lines)
+    out_file.seek(0, io.SEEK_SET)
+    out_text = out_file.read()
+    return out_text
+
+
 def test_all_files():
     for test in test_files:
         exp_file = get_expect_filename(test)
@@ -52,15 +62,8 @@ def test_all_files():
         except IOError:
             exp_text = generate_expected_file(test, exp_file)
         # Now generate the thing...
-        out_file = io.StringIO("")
         text = open(test).read()
-        lines = text.splitlines()
-        tree = ast.parse(text)
-        symbols = SymbolPass(tree, lines)
-        GeneratePass(symbols, tree, out_file, lines)
-        # Now get the string to compare...
-        out_file.seek(0, io.SEEK_SET)
-        out_text = out_file.read()
+        out_text = run_test_from_text(text)
         if out_text != exp_text:
             with open(f"exp-{exp_file}", "w") as f:
                 f.write(exp_text)

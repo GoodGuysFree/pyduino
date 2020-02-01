@@ -24,24 +24,21 @@ class SymbolPass(ScopeTracker):
             if isinstance(value, int):
                 return "int"
             elif isinstance(value, str):
-                msg = self.exception_msg("Strings not yet supported", node=value_node)
-                raise Exception(msg)
+                raise self.exception("Strings not yet supported", node=value_node)  # tested
             elif isinstance(value, float):
                 return "float"
             else:
-                msg = self.exception_msg(
+                raise self.exception(
                     f"Unsupported constant value type: {value}", node=value_node
                 )
-                raise Exception(msg)
         elif isinstance(value_node, ast.UnaryOp):
             if not (
                 isinstance(value_node.op, ast.USub)
                 or isinstance(value_node.op, ast.UAdd)
             ):
-                msg = self.exception_msg(
+                raise self.exception(
                     "Only +/- unary operators supported.", node=value_node
                 )
-                raise Exception(msg)
             return self.get_type_from_value(value_node.operand)
         elif isinstance(value_node, ast.Name):
             target = self.scoped_sym(value_node.id)
@@ -50,35 +47,30 @@ class SymbolPass(ScopeTracker):
             l_type = self.get_type_from_value(value_node.left)
             r_type = self.get_type_from_value(value_node.right)
             if l_type != r_type:
-                msg = self.exception_msg(
+                raise self.exception(
                     "We do not support different types on binary operators.",
                     node=value_node,
                 )
-                raise Exception(msg)
             return l_type
         elif isinstance(value_node, ast.List) or isinstance(value_node, ast.Tuple):
             list_size = len(value_node.elts)
             if list_size == 0:
-                msg = self.exception_msg(
-                    "Empty lists not supported yet", node=value_node
-                )
-                raise Exception(msg)
+                raise self.exception("Empty lists not supported yet", node=value_node)
             t_el0 = self.get_type_from_value(value_node.elts[0])
             same_as_el0 = [
                 self.get_type_from_value(x) == t_el0 for x in value_node.elts
             ]
             if not all(same_as_el0):
-                msg = self.exception_msg(
+                raise self.exception(
                     "Only homogeneous lists and tuples are supported.", node=value_node
                 )
-                raise Exception(msg)
+
             return f"list:{list_size}:{t_el0}"
         else:
-            msg = self.exception_msg(
+            raise self.exception(
                 f"Cannot obtain type information from unexpected node of type {value_node}",
                 node=value_node,
-            )
-            raise Exception(msg)
+            )  # tested
 
     def add_symbol_to_scope(self, symbol, scope=None):
         if scope is None:
@@ -102,10 +94,10 @@ class SymbolPass(ScopeTracker):
     def add_scoped_symbol_type(self, s_name, s_type):
         scoped_sym = self.scoped_sym(s_name)
         if scoped_sym in self.types:
-            msg = self.exception_msg(
+            raise self.exception(
                 f"Symbol {s_name} already has a type associated with it,"
             )
-            raise Exception(msg)
+
         self.types[scoped_sym] = s_type
 
     def set_func_ret_type(self, symbol, new_type):
@@ -118,16 +110,16 @@ class SymbolPass(ScopeTracker):
         scoped_target = self.scoped_sym(var_name)
         known_type = self.types.get(scoped_target, var_type)
         if known_type != var_type:
-            msg = self.exception_msg(
+            raise self.exception(
                 f"Variable {var_name} annotated as being of type {var_type} "
                 f"but it is already known as being of type {known_type}",
             )
-            raise Exception(msg)
+
         if self.is_known_in_scope(var_name):
-            msg = self.exception_msg(
+            raise self.exception(
                 f"Variable {var_name} is already known in scope {self.current_scope()}",
             )
-            raise Exception(msg)
+
         self.add_symbol_to_scope(scoped_target)
         self.add_scoped_symbol_type(scoped_target, var_type)
 
@@ -141,10 +133,9 @@ class SymbolPass(ScopeTracker):
         elif self.unscoped_sym(symbol) in self.types:
             return self.types[self.unscoped_sym(symbol)]
         else:
-            msg = self.exception_msg(
+            raise self.exception(
                 f"Trying to find type for {symbol=} but it cannot be found.", node=node
             )
-            raise Exception(msg)
 
     def find_ret_type(self, scoped_func_name, node=None):
         stored_type = self.find_type(scoped_func_name)
@@ -156,11 +147,10 @@ class SymbolPass(ScopeTracker):
             assert parts[0] == "func"
             return parts[1]
         else:
-            msg = self.exception_msg(
+            raise self.exception(
                 f"Internal error trying to find ret type for {scoped_func_name}",
                 node=node,
             )
-            raise Exception(msg)
 
     @staticmethod
     def unscoped_sym(symbol):
@@ -225,11 +215,10 @@ class SymbolPass(ScopeTracker):
         else:
             if f"func:{type_of_this_return}" != known_type:
                 show_known_type = known_type.split(":")[1]
-                msg = self.exception_msg(
+                raise self.exception(
                     f"Function should return '{show_known_type}' "
                     f"but this return statement is of type '{type_of_this_return}'"
                 )
-                raise Exception(msg)
 
     def visit_arg(self, node):
         arg_name = node.arg
