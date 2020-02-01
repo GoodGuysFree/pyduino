@@ -32,9 +32,22 @@ class GeneratePass(ScopeTracker):
 
         # Local context stuff
         self.num_arguments = 0
+        self.current_node = None
 
         # Run the tree
         self.visit(tree)
+
+    def exception_message(self, text, node=None):
+        if node is None:
+            node = self.current_node
+        msg = f"In line {node.lineno}: ["
+        src_lines = self.lines[node.lineno - 1 : node.end_lineno]
+        src_lines[-1] = src_lines[-1][: node.end_col_offset]
+        src_lines[0] = src_lines[0][node.col_offset :]
+        src_text = " ".join(src_lines)
+        msg += src_text
+        msg += "] " + text
+        return msg
 
     def indented(self, s):
         return " " * self.indent_level + s
@@ -78,12 +91,13 @@ class GeneratePass(ScopeTracker):
             raise Exception(f"Unknown advanced type description {adv_type=}")
 
     def emit_scope_local_decls(self):
+        # Passing self.current_node into self.syms methods for exception handling
         local_syms = self.syms.find_local_syms(self.current_scope())
         if len(local_syms) > 0 and self.current_scope() != "":
             self.output("/* Local Variable Declarations */\n", indent=True)
         for name in sorted(local_syms):
             local_name = self.syms.unscoped_sym(name)
-            local_type = self.syms.find_type(name)
+            local_type = self.syms.find_type(name, self.current_node)
             if ":" in local_type:  # advanced types, like list:int etc.
                 self.emit_advanced_decl(local_type, local_name)
             else:
@@ -103,8 +117,9 @@ class GeneratePass(ScopeTracker):
         self.generic_visit(node)
 
     def visit_FunctionDef(self, node):
+        # Passing node into self.syms methods for exception handling
         func_name = node.name
-        ret_type = self.syms.find_ret_type(self.scoped_sym(func_name))
+        ret_type = self.syms.find_ret_type(self.scoped_sym(func_name), node=node)
         self.output(f"\n{ret_type} {func_name}")
         self.enter_scope(func_name)
         self.indent()
@@ -122,30 +137,33 @@ class GeneratePass(ScopeTracker):
         self.output("/* Main Code */\n", indent=True)
 
     def visit_arg(self, node):
+        # Passing node into self.syms methods for exception handling
         if self.num_arguments > 0:
             self.output(", ")
         self.num_arguments += 1
         scoped_sym = self.scoped_sym(node.arg)
-        scoped_typ = self.syms.find_type(scoped_sym)
+        scoped_typ = self.syms.find_type(scoped_sym, node=node)
         self.output(f"{scoped_typ} {node.arg}")
         self.generic_visit(node)
 
     def visit_AnnAssign(self, node):
+        # Passing node into self.syms methods for exception handling
         target = node.target.id
         scoped_target = self.scoped_sym(target)
-        known_type = self.syms.find_type(scoped_target)
+        known_type = self.syms.find_type(scoped_target, node=node)
         tgt_type = node.annotation.id
         assert known_type == tgt_type
         value = self.visit(node.value)
         self.output(f"{target} = {value};\n", indent=True)
 
     def visit_Assign(self, node):
+        # Passing node into self.syms methods for exception handling
         targets = node.targets
-        tgt_type = self.syms.find_type(self.scoped_sym(targets[0].id))
+        tgt_type = self.syms.find_type(self.scoped_sym(targets[0].id), node=node)
         tgt_names = []
         for target in targets:
             tgt_name = target.id
-            assert self.syms.find_type(self.scoped_sym(tgt_name)) == tgt_type
+            assert self.syms.find_type(self.scoped_sym(tgt_name), node=node) == tgt_type
             tgt_names.append(target.id)
         tgt_s = " = ".join(tgt_names)
         value = self.visit(node.value)
@@ -238,4 +256,5 @@ class GeneratePass(ScopeTracker):
         visitor = getattr(self, method, self.generic_visit)
         if visitor == self.generic_visit:
             print(f"Would call {method} {node!r}")
+        self.current_node = node  # will be used for easy error reporting
         return visitor(node)
