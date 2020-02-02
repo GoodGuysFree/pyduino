@@ -174,7 +174,7 @@ class GeneratePass(ScopeTracker):
             # Assuming int for now...
             key_s = f"((void*)({key}))"
             val_s = f"((void*)({val}))"
-            s += self.indented(f'ht_put(ret, {key_s}, {val_s});\n')
+            s += self.indented(f"ht_put(ret, {key_s}, {val_s});\n")
         s += self.indented("ret;\n")
         s += self.indented("})")
         self.outdent()
@@ -244,7 +244,7 @@ class GeneratePass(ScopeTracker):
         known_type = self.syms.find_type(scoped_target, node=node)
         tgt_type = node.annotation.id
         assert known_type == tgt_type
-        self.current_target = target.id
+        self.current_target = node.target
         value = self.visit(node.value)
         self.current_target = None
         self.output(f"{target} = {value};\n", indent=True)
@@ -298,8 +298,9 @@ class GeneratePass(ScopeTracker):
         self.generic_visit(node)
 
     def visit_Expr(self, node):
-        self.generic_visit(node)
-        self.output(";\n")
+        was_docstring = self.generic_visit(node)
+        if not was_docstring:
+            self.output(";\n")
 
     def visit_BinOp(self, node):
         left = self.visit(node.left)
@@ -361,6 +362,10 @@ class GeneratePass(ScopeTracker):
     def generic_visit(self, node):
         """Called if no explicit visitor function exists for a node."""
         s = ""
+        is_docstring = False
+        maybe_docstring = False
+        if isinstance(node, ast.Expr) and self.current_target is None:
+            maybe_docstring = True
         for field, value in iter_fields(node):
             if isinstance(value, list):
                 if DEBUG_SHOW_NODES:
@@ -377,6 +382,13 @@ class GeneratePass(ScopeTracker):
                     print(f"Going to visit value {value.__class__.__name__}")
                 ret = self.visit(value)
                 if ret is not None:
+                    if maybe_docstring and isinstance(value, ast.Constant):
+                        is_docstring = True
                     s += str(ret)
         if len(s) > 0:
-            self.output(s, indent=True)
+            if is_docstring:
+                self.output(f"/* {s} */\n", indent=True)
+                return True
+            else:
+                self.output(s, indent=True)
+        return None

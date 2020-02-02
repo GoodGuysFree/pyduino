@@ -29,7 +29,7 @@ def generate_expected_file(srcfile, expfile):
     tree = ast.parse(text)
     symbols = SymbolPass(tree, lines)
     out_file = io.StringIO("")
-    GeneratePass(symbols, tree, out_file, lines)
+    GeneratePass(symbols, tree, out_file, lines, headings=False)
     out_file.seek(0, io.SEEK_SET)
     out_text = out_file.read()
     exp_f.write(out_text)
@@ -56,7 +56,7 @@ def run_test_from_text(text, headings=True):
 
 def pos_test(code, expected_output):
     output = run_test_from_text(code, headings=False)
-    #print(output)
+    # print(output)
     assert output.strip() == expected_output.strip()
 
 
@@ -71,6 +71,7 @@ def neg_test(code, expected_message):
 
 def test_all_files():
     for test in test_files:
+        print(f"========= {test} =========")
         exp_file = get_expect_filename(test)
         try:
             exp_text = open(exp_file).read()
@@ -78,10 +79,28 @@ def test_all_files():
             exp_text = generate_expected_file(test, exp_file)
         # Now generate the thing...
         text = open(test).read()
-        out_text = run_test_from_text(text)
+        out_text = run_test_from_text(text, headings=False)
         if out_text != exp_text:
             with open(f"exp-{exp_file}", "w") as f:
                 f.write(exp_text)
             with open(f"out-{exp_file}", "w") as f:
                 f.write(out_text)
         assert out_text == exp_text
+
+
+def test_docstring():
+    pos_test(
+        '''
+def func():
+    """docstring"""
+    pass
+''',
+        """
+void func() {
+    /* docstring */
+}""",
+    )
+
+
+def test_module_docstring():
+    pos_test('''"""Top Docstring"""''', """/* Top Docstring */""")

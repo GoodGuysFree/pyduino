@@ -18,8 +18,8 @@ def test_strings_not_supported():
 
 def test_unsupported_data_type():
     neg_test(
-        "map = {1: 3,}",
-        "In line 1: [{1: 3,}] Cannot obtain type information from unexpected node of type <_ast.Dict object at 0x",
+        "map = str(3)",
+        "In line 1: [str(3)] Cannot obtain type information from unexpected node of type <_ast.Call object at 0x",
     )
 
 
