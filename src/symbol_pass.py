@@ -92,10 +92,10 @@ class SymbolPass(ScopeTracker):
                 )  # tested
 
             return f"list:{list_size}:{t_el0}"
-        elif isinstance(value_node, ast.Dict):
-            key_type = self.validate_same_type(value_node.keys, "key")
-            val_type = self.validate_same_type(value_node.values, "value")
-            return f"dict_t:{key_type}:{val_type}"
+        # elif isinstance(value_node, ast.Dict):
+        #     key_type = self.validate_same_type(value_node.keys, "key")
+        #     val_type = self.validate_same_type(value_node.values, "value")
+        #     return f"dict_t:{key_type}:{val_type}"
         elif isinstance(value_node, str):
             return 'str'
         else:
