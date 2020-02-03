@@ -10,25 +10,17 @@ void* HT_ERROR = &err_ptr; // Data pointing to HT_ERROR are returned in case of 
 /* 	Internal function to calculate hash for keys.
 	It's based on the DJB algorithm from Daniel J. Bernstein.
 	The key must be ended by '\0' character.*/
-static unsigned int ht_calc_hash(hashtable_t* ht, char* key)
+static unsigned int ht_calc_hash(char* key)
 {
 	unsigned int h = 5381;
-	if (ht->key_size == 0) { // NULL terminated strings
-        while(*(key++)) {
-            h = ((h << 5) + h) + (*key);
-        }
-    } else {    // hashing all bytes of key
-        int bytes_left = ht->key_size;
-        while (bytes_left--) {
-            h = ((h << 5) + h) + (*key++);
-        }
-    }
-	return h % hasht->capacity;
+	while(*(key++))
+		h = ((h << 5) + h) + (*key);
+	return h;
 }
 
 /* 	Create a hashtable with capacity 'capacity'
 	and return a pointer to it*/
-hashtable_t* ht_create(unsigned int capacity, unsigned int key_size)
+hashtable_t* ht_create(unsigned int capacity)
 {
 	hashtable_t* hasht = malloc(sizeof(hashtable_t));
 	if(!hasht)
@@ -43,7 +35,6 @@ hashtable_t* ht_create(unsigned int capacity, unsigned int key_size)
 	unsigned int i;
 	for(i = 0; i < capacity; i++)
 		hasht->table[i] = NULL;
-	hasht->key_size = key_size;
 	return hasht;
 }
 
@@ -54,7 +45,7 @@ void* ht_put(hashtable_t* hasht, char* key, void* data)
 {
 	if(data == NULL)
 		return NULL;
-	unsigned int h = ht_calc_hash(hasht, key);
+	unsigned int h = ht_calc_hash(key) % hasht->capacity;
 	hash_elem_t* e = hasht->table[h];
 
 	while(e != NULL)
@@ -86,7 +77,7 @@ void* ht_put(hashtable_t* hasht, char* key, void* data)
 /* Retrieve data from the hashtable */
 void* ht_get(hashtable_t* hasht, char* key)
 {
-	unsigned int h = ht_calc_hash(hasht, key);
+	unsigned int h = ht_calc_hash(key) % hasht->capacity;
 	hash_elem_t* e = hasht->table[h];
 	while(e != NULL)
 	{
@@ -101,7 +92,7 @@ void* ht_get(hashtable_t* hasht, char* key)
 	so that we can free memory if needed */
 void* ht_remove(hashtable_t* hasht, char* key)
 {
-	unsigned int h = ht_calc_hash(hasht, key);
+	unsigned int h = ht_calc_hash(key) % hasht->capacity;
 	hash_elem_t* e = hasht->table[h];
 	hash_elem_t* prev = NULL;
 	while(e != NULL)

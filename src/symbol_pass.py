@@ -18,6 +18,14 @@ class SymbolPass(ScopeTracker):
         # Run the tree
         self.visit(tree)
 
+    def validate_same_type(self, items, tag):
+        if len(items) == 0:
+            return None
+        i0_type = self.get_type_from_value(items[0])
+        if not all([self.get_type_from_value(item) == i0_type for item in items]):
+            raise self.exception(f"All items of {tag} must be of the same type.")
+        return i0_type
+
     def get_type_from_value(self, value_node):
         if isinstance(value_node, ast.Constant):
             value = value_node.value
@@ -85,7 +93,9 @@ class SymbolPass(ScopeTracker):
 
             return f"list:{list_size}:{t_el0}"
         elif isinstance(value_node, ast.Dict):
-            return "dict_t"
+            key_type = self.validate_same_type(value_node.keys, "key")
+            val_type = self.validate_same_type(value_node.values, "value")
+            return f"dict_t:{key_type}:{val_type}"
         elif isinstance(value_node, str):
             return 'str'
         else:

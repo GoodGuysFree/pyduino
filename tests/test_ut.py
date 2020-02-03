@@ -57,6 +57,11 @@ def run_test_from_text(text, headings=True):
 def pos_test(code, expected_output):
     output = run_test_from_text(code, headings=False)
     # print(output)
+    if output.strip() != expected_output.strip():
+        print("=== expected ===")
+        print(expected_output)
+        print("=== actual ===")
+        print(output)
     assert output.strip() == expected_output.strip()
 
 
