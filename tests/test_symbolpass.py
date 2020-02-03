@@ -4,16 +4,11 @@ from tests.test_ut import neg_test
 # Negative tests for SymbolPass
 
 
-
 def test_no_exception_else_clause():
     try:
         neg_test("a = 5", "nothing")
     except AssertionError:
         pass
-
-
-def test_strings_not_supported():
-    neg_test('str_var = "test"', 'In line 1: ["test"] Strings not yet supported')
 
 
 def test_unsupported_data_type():
