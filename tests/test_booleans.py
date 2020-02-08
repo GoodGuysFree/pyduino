@@ -6,7 +6,7 @@ var : bool = True
 
 simple_bool_c = """bool var;
 
-var = True;
+var = true;
 """
 
 
@@ -22,7 +22,7 @@ simple_bool_annotation_c = """
 bool boolfunc(bool var1) {
     bool var1;
 
-    return (False);
+    return (false);
 }
 
 
@@ -72,4 +72,4 @@ def test_boolean_not_assignment():
 
 
 def test_bool_lst_assignment():
-    pos_test("a = [True, False]", "bool a[2];\n\na = [True, False];")
+    pos_test("a = [True, False]", "bool a[2];\n\na = [true, false];")
