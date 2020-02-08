@@ -6,6 +6,8 @@ from scope_tracker import ScopeTracker
 
 
 class SymbolPass(ScopeTracker):
+    builtin_typecall_names = ('tuple', 'set', 'list', 'str')
+
     def __init__(self, tree, lines):
         super().__init__(lines)
         # self.symbols: dictionary with:
@@ -13,7 +15,9 @@ class SymbolPass(ScopeTracker):
         #   value = set of scoped symbol-names in this scope
         self.symbols = {}
         self.types = {}  # key = scoped-symbol, value = python type
-        self.func_args = {} # key = scoped function symbol, value = scoped argument name
+        self.func_args = (
+            {}
+        )  # key = scoped function symbol, value = scoped argument name
         self.lines = lines
 
         # Run the tree
@@ -65,9 +69,9 @@ class SymbolPass(ScopeTracker):
             return self.find_type(target)
         elif isinstance(value_node, ast.BinOp):
             l_type = self.get_type_from_value(value_node.left)
-            ltype = l_type if l_type.find(':') < 0 else l_type.split(':')[1]
+            ltype = l_type if l_type.find(":") < 0 else l_type.split(":")[1]
             r_type = self.get_type_from_value(value_node.right)
-            rtype = r_type if r_type.find(':') < 0 else r_type.split(':')[1]
+            rtype = r_type if r_type.find(":") < 0 else r_type.split(":")[1]
             if ltype != rtype:
                 raise self.exception(
                     "We do not support different types on binary operators.",
@@ -106,12 +110,21 @@ class SymbolPass(ScopeTracker):
         elif isinstance(value_node, str):
             return "str"
         elif isinstance(value_node, ast.Call):
+            if value_node.func.id in self.builtin_typecall_names:
+                return self.get_type_from_builtin_typecall(value_node)
             return self.find_type(value_node.func.id)
         else:
             raise self.exception(
                 f"Cannot obtain type information from unexpected node of type {value_node}",
                 node=value_node,
             )  # tested
+
+    def get_type_from_builtin_typecall(self, value_node):
+        builtin = value_node.func.id
+        if builtin == "str":
+            return "str"
+        else:
+            raise self.exception(f"Not implemented yet.")
 
     def add_symbol_to_scope(self, symbol, scope=None):
         if scope is None:
@@ -174,7 +187,9 @@ class SymbolPass(ScopeTracker):
     def find_local_syms(self, scope, include_function_args=True):
         scope_syms = self.symbols.get(scope, set())
         if not include_function_args:
-            scope_syms = [x for x in scope_syms if x not in self.func_args.get(scope, set())]
+            scope_syms = [
+                x for x in scope_syms if x not in self.func_args.get(scope, set())
+            ]
         return set([x for x in scope_syms if x.startswith(scope)])
 
     def find_type(self, symbol, node=None):

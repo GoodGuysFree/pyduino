@@ -4,6 +4,7 @@ from ast import iter_fields
 from pprint import pprint
 
 from scope_tracker import ScopeTracker
+from symbol_pass import SymbolPass
 
 INDENT_STEP = 4
 
@@ -137,6 +138,14 @@ class GeneratePass(ScopeTracker):
                 self.output(f"{c_type} {local_name};\n", indent=True)
         if len(local_syms) > 0:
             self.output("\n")
+
+    def handle_builtin_typecall(self, node):
+        builtin = node.func.id
+        if builtin == 'str':
+            return "string"
+        elif builtin == 'tuple':
+            return "tuple"
+        raise self.exception("Unhandled case")
 
     # def prep_dict_key(self, key, key_type):
     #     if key_type == 'int':
@@ -350,11 +359,22 @@ class GeneratePass(ScopeTracker):
         return str(self.visit(node.value))
 
     def visit_Call(self, node):
+        is_string = False
+        is_list = False
         if isinstance(node.func, ast.Attribute):
             s = node.func.value.id + "." + node.func.attr
         else:
             s = node.func.id
-        s += "("
+            if s in SymbolPass.builtin_typecall_names:
+                s = self.handle_builtin_typecall(node)
+                if s == "string":
+                    is_string = True
+                elif s in ("tuple", "list", "set"):
+                    is_list = True
+        if is_list:
+            s = "["
+        else:
+            s += "("
         if len(node.args) > 0:
             self.num_arguments = 0
             for arg in node.args:
@@ -363,6 +383,8 @@ class GeneratePass(ScopeTracker):
                 self.num_arguments += 1
                 if isinstance(arg, ast.Constant):
                     value = self.visit(arg)
+                    if is_string:
+                        value = f'"{value}"'
                 elif isinstance(arg, ast.Subscript):
                     value = self.visit(arg.value)
                     value += "["
@@ -375,7 +397,10 @@ class GeneratePass(ScopeTracker):
                 else:
                     raise Exception(f"Unexpected {arg=}")
                 s += f"{value}"
-        s += ")"
+        if is_list:
+            s += "]"
+        else:
+            s += ")"
         return s
 
     def visit(self, node):

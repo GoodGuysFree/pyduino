@@ -60,3 +60,7 @@ ret2 = (string("Assign: ") + func((string("foo") + global_string), ret1));
 
 def test_advanced_strings():
     pos_test(advanced_string_test_py, advanced_string_test_c)
+
+
+def test_str_builtin():
+    pos_test("a = str(6)", 'string a;\n\na = string("6");')
