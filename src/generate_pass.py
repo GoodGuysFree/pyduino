@@ -33,6 +33,7 @@ python_type_to_c_type = {
     "float": "double",
     "str": "string",
     "bool": "bool",
+    "void": "void",
 }
 
 # scoped-symbol:
@@ -121,7 +122,9 @@ class GeneratePass(ScopeTracker):
 
     def emit_scope_local_decls(self):
         # Passing self.current_node into self.syms methods for exception handling
-        local_syms = self.syms.find_local_syms(self.current_scope())
+        local_syms = self.syms.find_local_syms(
+            self.current_scope(), include_function_args=False
+        )
         if len(local_syms) > 0 and self.current_scope() != "" and self.headings:
             self.output("/* Local Variable Declarations */\n", indent=True)
         for name in sorted(local_syms):
@@ -185,7 +188,8 @@ class GeneratePass(ScopeTracker):
         # Passing node into self.syms methods for exception handling
         func_name = node.name
         ret_type = self.syms.find_ret_type(self.scoped_sym(func_name), node=node)
-        self.output(f"\n{ret_type} {func_name}")
+        c_ret_type = python_type_to_c_type[ret_type]
+        self.output(f"\n{c_ret_type} {func_name}")
         self.enter_scope(func_name)
         self.indent()
         # Ugly hack to avoid seeing the return type again...
@@ -235,7 +239,8 @@ class GeneratePass(ScopeTracker):
         self.num_arguments += 1
         scoped_sym = self.scoped_sym(node.arg)
         scoped_typ = self.syms.find_type(scoped_sym, node=node)
-        s += f"{scoped_typ} {node.arg}"
+        c_scoped_typ = python_type_to_c_type[scoped_typ]
+        s += f"{c_scoped_typ} {node.arg}"
         return s
 
     def visit_AnnAssign(self, node):
@@ -251,7 +256,9 @@ class GeneratePass(ScopeTracker):
         self.current_target = None
         if tgt_type == "str":
             if not isinstance(value, str):
-                raise self.exception(f"Assignment to {tgt_s} of {value=} which is not a string")
+                raise self.exception(
+                    f"Assignment to {tgt_s} of {value=} which is not a string"
+                )
         self.output(f"{target} = {value};\n", indent=True)
         self.during_assign = False
 
@@ -271,7 +278,9 @@ class GeneratePass(ScopeTracker):
         self.current_target = None
         if tgt_type == "str":
             if not isinstance(value, str):
-                raise self.exception(f"Assignment to {tgt_s} of {value=} which is not a string")
+                raise self.exception(
+                    f"Assignment to {tgt_s} of {value=} which is not a string"
+                )
         self.output(f"{tgt_s} = {value};\n", indent=True)
         self.during_assign = False
 

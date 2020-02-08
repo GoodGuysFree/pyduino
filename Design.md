@@ -70,9 +70,8 @@ we also track the scope we're in, in the same way as we do in the first pass.
 
 Strings
 -------
-The plan is to use [Simple Dynamic Strings](https://github.com/antirez/sds).
-
+Will use standard C++ strings.
 
 Dictionaries
 ------------
-Planning to use [phsym/hashtable.c](https://gist.github.com/phsym/4605704).
+Will use C++ STL map.

@@ -20,8 +20,6 @@ simple_bool_annotation_py = """def boolfunc(var1 : bool) -> bool:
 
 simple_bool_annotation_c = """
 bool boolfunc(bool var1) {
-    bool var1;
-
     return (false);
 }
 

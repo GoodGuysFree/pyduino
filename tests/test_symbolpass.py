@@ -4,19 +4,11 @@ from tests.test_ut import neg_test
 # Negative tests for SymbolPass
 
 
-
 def test_no_exception_else_clause():
     try:
         neg_test("a = 5", "nothing")
     except AssertionError:
         pass
-
-
-def test_unsupported_data_type():
-    neg_test(
-        "map = str(3)",
-        "In line 1: [str(3)] Cannot obtain type information from unexpected node of type <_ast.Call object at 0x",
-    )
 
 
 # def test_unsupported_dict():

@@ -10,7 +10,9 @@ def test_annotated_declaration():
 
 
 def test_assign_value():
-    pos_test("a = 'foo'\na = 'bar'", 'string a;\n\na = string("foo");\na = string("bar");\n')
+    pos_test(
+        "a = 'foo'\na = 'bar'", 'string a;\n\na = string("foo");\na = string("bar");\n'
+    )
 
 
 def test_assign_wrong_type():
@@ -25,3 +27,36 @@ def test_assign_plus_op():
         code='a = "amit" + " margalit"',
         expected_output='string a;\n\na = (string("amit") + string(" margalit"));\n',
     )
+
+
+# Advanced string test
+advanced_string_test_py = '''
+global_string = "Amit Margalit"
+
+def func(v1: str, v2: str) -> str:
+    """Simple Docstring"""
+    return v1 + " = " + v2
+
+ret1 = global_string + func("foo", "bar")
+ret2 = "Assign: " + func("foo" + global_string, ret1)
+'''
+advanced_string_test_c = """
+string global_string;
+string ret1;
+string ret2;
+
+global_string = string("Amit Margalit");
+
+string func(string v1, string v2) {
+    /* Simple Docstring */
+    return (((v1 + " = ") + v2));
+}
+
+
+ret1 = (global_string + func(string("foo"), string("bar")));
+ret2 = (string("Assign: ") + func((string("foo") + global_string), ret1));
+"""
+
+
+def test_advanced_strings():
+    pos_test(advanced_string_test_py, advanced_string_test_c)

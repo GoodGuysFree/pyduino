@@ -11,7 +11,7 @@ int int_ret_annotation_int_ret() {
 
 
 
-float float_ret_annotation_float_ret() {
+double float_ret_annotation_float_ret() {
     return (3.14159265835);
 }
 
@@ -33,7 +33,7 @@ void no_ret_annotation_ret_wo_val() {
 
 
 
-float no_ret_annotation_complex_ret() {
+double no_ret_annotation_complex_ret() {
     double a;
     double b;
 

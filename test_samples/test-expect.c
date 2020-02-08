@@ -6,8 +6,6 @@ omri = 3;
 amit = omri = 5;
 
 void setup(int a, int b) {
-    int a;
-    int b;
     int c;
 
     c = 8;

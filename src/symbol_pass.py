@@ -13,6 +13,7 @@ class SymbolPass(ScopeTracker):
         #   value = set of scoped symbol-names in this scope
         self.symbols = {}
         self.types = {}  # key = scoped-symbol, value = python type
+        self.func_args = {} # key = scoped function symbol, value = scoped argument name
         self.lines = lines
 
         # Run the tree
@@ -25,6 +26,12 @@ class SymbolPass(ScopeTracker):
         if not all([self.get_type_from_value(item) == i0_type for item in items]):
             raise self.exception(f"All items of {tag} must be of the same type.")
         return i0_type
+
+    def add_func_argument(self, arg_name):
+        curr_scope = self.current_scope()
+        arg_list = self.func_args.get(curr_scope, [])
+        arg_list.append(self.scoped_sym(arg_name))
+        self.func_args[curr_scope] = arg_list
 
     def get_type_from_value(self, value_node):
         if isinstance(value_node, ast.Constant):
@@ -58,8 +65,10 @@ class SymbolPass(ScopeTracker):
             return self.find_type(target)
         elif isinstance(value_node, ast.BinOp):
             l_type = self.get_type_from_value(value_node.left)
+            ltype = l_type if l_type.find(':') < 0 else l_type.split(':')[1]
             r_type = self.get_type_from_value(value_node.right)
-            if l_type != r_type:
+            rtype = r_type if r_type.find(':') < 0 else r_type.split(':')[1]
+            if ltype != rtype:
                 raise self.exception(
                     "We do not support different types on binary operators.",
                     node=value_node,
@@ -96,6 +105,8 @@ class SymbolPass(ScopeTracker):
         #     return f"dict_t:{key_type}:{val_type}"
         elif isinstance(value_node, str):
             return "str"
+        elif isinstance(value_node, ast.Call):
+            return self.find_type(value_node.func.id)
         else:
             raise self.exception(
                 f"Cannot obtain type information from unexpected node of type {value_node}",
@@ -160,8 +171,10 @@ class SymbolPass(ScopeTracker):
         self.add_symbol_to_scope(scoped_target)
         self.add_scoped_symbol_type(scoped_target, var_type)
 
-    def find_local_syms(self, scope):
+    def find_local_syms(self, scope, include_function_args=True):
         scope_syms = self.symbols.get(scope, set())
+        if not include_function_args:
+            scope_syms = [x for x in scope_syms if x not in self.func_args.get(scope, set())]
         return set([x for x in scope_syms if x.startswith(scope)])
 
     def find_type(self, symbol, node=None):
@@ -268,6 +281,7 @@ class SymbolPass(ScopeTracker):
             self.handle_annotated_variable(arg_name, arg_type)
         else:  # So we know the argument, but not its type... We'll store it as a symbol but not its type
             self.add_symbol_to_scope(self.scoped_sym(arg_name))
+        self.add_func_argument(arg_name)
 
     def visit(self, node):
         """Visit a node."""
