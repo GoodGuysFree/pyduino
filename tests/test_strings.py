@@ -23,5 +23,5 @@ def test_assign_wrong_type():
 def test_assign_plus_op():
     pos_test(
         code='a = "amit" + " margalit"',
-        expected_output='string a;\n\na = ("amit" + " margalit");\n',
+        expected_output='string a;\n\na = (string("amit") + string(" margalit"));\n',
     )

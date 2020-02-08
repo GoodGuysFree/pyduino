@@ -56,11 +56,12 @@ class GeneratePass(ScopeTracker):
         self.indent_level = 0
         self.out_string = ""
         self.headings = headings
-        self.current_target = None  # hold assignment target during eval
         self.outf = output_file
 
         # Local context stuff
+        self.current_target = None  # hold assignment target during eval
         self.num_arguments = 0
+        self.during_assign = False
 
         # Run the tree
         self.visit(tree)
@@ -239,6 +240,7 @@ class GeneratePass(ScopeTracker):
 
     def visit_AnnAssign(self, node):
         # Passing node into self.syms methods for exception handling
+        self.during_assign = True
         target = node.target.id
         scoped_target = self.scoped_sym(target)
         known_type = self.syms.find_type(scoped_target, node=node)
@@ -251,9 +253,11 @@ class GeneratePass(ScopeTracker):
             if not isinstance(value, str):
                 raise self.exception(f"Assignment to {tgt_s} of {value=} which is not a string")
         self.output(f"{target} = {value};\n", indent=True)
+        self.during_assign = False
 
     def visit_Assign(self, node):
         # Passing node into self.syms methods for exception handling
+        self.during_assign = True
         targets = node.targets
         tgt_type = self.syms.find_type(self.scoped_sym(targets[0].id), node=node)
         tgt_names = []
@@ -269,6 +273,7 @@ class GeneratePass(ScopeTracker):
             if not isinstance(value, str):
                 raise self.exception(f"Assignment to {tgt_s} of {value=} which is not a string")
         self.output(f"{tgt_s} = {value};\n", indent=True)
+        self.during_assign = False
 
     def visit_Return(self, node):
         if node.value is None:
@@ -283,7 +288,10 @@ class GeneratePass(ScopeTracker):
         if isinstance(node.value, str):
             if '"' in node.value:
                 ret = node.value.replace('"', '\\"')
-            return f'"{node.value}"'
+            if self.during_assign:
+                return f'string("{node.value}")'
+            else:
+                return f'"{node.value}"'
         elif isinstance(node.value, bool):
             return str(node.value).lower()
         else:
