@@ -34,8 +34,8 @@ void no_ret_annotation_ret_wo_val() {
 
 
 float no_ret_annotation_complex_ret() {
-    float a;
-    float b;
+    double a;
+    double b;
 
     a = 8;
     b = 9;

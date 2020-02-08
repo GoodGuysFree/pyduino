@@ -12,10 +12,6 @@ def test_no_exception_else_clause():
         pass
 
 
-def test_strings_not_supported():
-    neg_test('str_var = "test"', 'In line 1: ["test"] Strings not yet supported')
-
-
 def test_unsupported_data_type():
     neg_test(
         "map = str(3)",

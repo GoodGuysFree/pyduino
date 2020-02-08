@@ -34,9 +34,7 @@ class SymbolPass(ScopeTracker):
             elif isinstance(value, int):
                 return "int"
             elif isinstance(value, str):
-                raise self.exception(
-                    "Strings not yet supported", node=value_node
-                )  # tested
+                return "str"
             elif isinstance(value, float):
                 return "float"
             else:
