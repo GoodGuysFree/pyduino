@@ -259,7 +259,6 @@ class GeneratePass(ScopeTracker):
         if tgt_type == "str":
             if not isinstance(value, str):
                 raise self.exception(f"Assignment to {tgt_s} of {value=} which is not a string")
-            value = f'"{value}"'
         self.output(f"{target} = {value};\n", indent=True)
 
     def visit_Assign(self, node):
@@ -278,7 +277,6 @@ class GeneratePass(ScopeTracker):
         if tgt_type == "str":
             if not isinstance(value, str):
                 raise self.exception(f"Assignment to {tgt_s} of {value=} which is not a string")
-            value = f'"{value}"'
         self.output(f"{tgt_s} = {value};\n", indent=True)
 
     def visit_Return(self, node):
@@ -291,7 +289,12 @@ class GeneratePass(ScopeTracker):
         self.output(s, indent=True)
 
     def visit_Constant(self, node):
-        return node.value
+        if isinstance(node.value, str):
+            if '"' in node.value:
+                ret = node.value.replace('"', '\\"')
+            return f'"{node.value}"'
+        else:
+            return node.value
 
     def visit_List(self, node):
         s = "["
@@ -350,8 +353,6 @@ class GeneratePass(ScopeTracker):
                 self.num_arguments += 1
                 if isinstance(arg, ast.Constant):
                     value = self.visit(arg)
-                    if isinstance(value, str):
-                        value = f'"{value}"'
                 elif isinstance(arg, ast.Subscript):
                     value = self.visit(arg.value)
                     value += "["
@@ -401,6 +402,7 @@ class GeneratePass(ScopeTracker):
                 if ret is not None:
                     if maybe_docstring and isinstance(value, ast.Constant):
                         is_docstring = True
+                        ret = ret[1:-1]
                     s += str(ret)
         if len(s) > 0:
             if is_docstring:

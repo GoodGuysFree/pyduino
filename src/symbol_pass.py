@@ -95,7 +95,7 @@ class SymbolPass(ScopeTracker):
         #     val_type = self.validate_same_type(value_node.values, "value")
         #     return f"dict_t:{key_type}:{val_type}"
         elif isinstance(value_node, str):
-            return 'str'
+            return "str"
         else:
             raise self.exception(
                 f"Cannot obtain type information from unexpected node of type {value_node}",
@@ -222,7 +222,11 @@ class SymbolPass(ScopeTracker):
                 self.add_scoped_symbol_type(scoped_target, tgt_ty)
                 self.add_symbol_to_scope(scoped_target)
             known_type = self.types[scoped_target]
-            assert known_type == tgt_ty
+            if known_type != tgt_ty:
+                raise self.exception(
+                    f"Assignment to a new different type is not supported."
+                    + f" {scoped_target} is of type {known_type} and is assigned a value of type {tgt_ty}"
+                )
 
     def visit_FunctionDef(self, node):
         func_name = node.name

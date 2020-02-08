@@ -109,3 +109,16 @@ void func() {
 
 def test_module_docstring():
     pos_test('''"""Top Docstring"""''', """/* Top Docstring */""")
+
+
+def test_docstring_with_single_quotes():
+    pos_test(
+        '''"""This isn't what you expected..."""''',
+        """/* This isn't what you expected... */""",
+    )
+
+
+def test_docstring_with_double_quotes():
+    pos_test(
+        '''"""This is "expected"..."""''', """/* This is "expected"... */""",
+    )
