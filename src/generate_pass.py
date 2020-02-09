@@ -8,7 +8,7 @@ from symbol_pass import SymbolPass
 
 INDENT_STEP = 4
 
-DEBUG_SHOW_NODES = False
+DEBUG_SHOW_NODES = True
 
 binop_to_string_dict = {
     ast.Add: "+",
@@ -212,6 +212,22 @@ class GeneratePass(ScopeTracker):
         self.outdent()
         self.exit_scope(func_name)
         self.output("}\n\n\n")
+
+    def visit_If(self, node):
+        s = "if "
+        s += self.visit(node.test)
+        s += " {\n"
+        self.output(s, indent=True)
+        self.indent()
+        s = ""
+        for item in node.body:
+            ret = self.visit(item)
+            if ret is not None:
+                s += str(ret)
+        if len(s) > 0:
+            self.output(s)
+        self.outdent()
+        self.output("}\n", indent=True)
 
     def visit_Compare(self, node):
         if len(node.comparators) != 1 or len(node.ops) != 1:
