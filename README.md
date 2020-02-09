@@ -1,9 +1,9 @@
-pytoc
-=====
+PyDuino
+=======
 
 Intro
 -----
-A rudimentary Python-to-C converter for Arduino projects.
+A rudimentary Python-to-C++ converter for Arduino projects.
 
 Usage
 -----
@@ -13,10 +13,10 @@ Known Limitations
 =================
 Partial list of limitations:
 
-1. No string variable support, only constants
-1. No dictionary support
+1. Very basic string variable support
+1. No dictionary support, yet
 1. Lists and tuples only work when all elements are of the same type
-1. if / else, and for / while do not work yet
+1. Using while loops does not work yet
 1. Advanced operators like += / -= don't work
 1. Boolean support is in its infancy
 1. Handling `if __name__ == "__main__":`
