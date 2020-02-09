@@ -141,9 +141,9 @@ class GeneratePass(ScopeTracker):
 
     def handle_builtin_typecall(self, node):
         builtin = node.func.id
-        if builtin == 'str':
+        if builtin == "str":
             return "string"
-        elif builtin == 'tuple':
+        elif builtin == "tuple":
             return "tuple"
         raise self.exception("Unhandled case")
 
@@ -227,7 +227,24 @@ class GeneratePass(ScopeTracker):
         if len(s) > 0:
             self.output(s)
         self.outdent()
-        self.output("}\n", indent=True)
+        if len(node.orelse) == 0:
+            self.output("}\n", indent=True)
+        else:
+            if len(node.orelse) == 1 and isinstance(node.orelse[0], ast.If):  # elif
+                self.output("} else ")
+                self.visit_If(node.orelse[0])
+            else:
+                self.output("} else {\n", indent=True)
+                self.indent()
+                s = ""
+                for item in node.orelse:
+                    ret = self.visit(item)
+                    if ret is not None:
+                        s += str(ret)
+                if len(s) > 0:
+                    self.output(s)
+                self.outdent()
+                self.output("}\n", indent=True)
 
     def visit_Compare(self, node):
         if len(node.comparators) != 1 or len(node.ops) != 1:
