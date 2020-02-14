@@ -6,7 +6,7 @@ from scope_tracker import ScopeTracker
 
 
 class SymbolPass(ScopeTracker):
-    builtin_typecall_names = ('tuple', 'set', 'list', 'str')
+    builtin_typecall_names = ("tuple", "set", "list", "str")
 
     def __init__(self, tree, lines):
         super().__init__(lines)
@@ -37,87 +37,88 @@ class SymbolPass(ScopeTracker):
         arg_list.append(self.scoped_sym(arg_name))
         self.func_args[curr_scope] = arg_list
 
-    def get_type_from_value(self, value_node):
-        if isinstance(value_node, ast.Constant):
-            value = value_node.value
-            if isinstance(value, bool):
-                return "bool"
-            elif isinstance(value, int):
-                return "int"
-            elif isinstance(value, str):
-                return "str"
-            elif isinstance(value, float):
-                return "float"
-            else:
-                raise self.exception(
-                    f"Unsupported constant value type: {value}", node=value_node
-                )  # TODO: how to test this???
-        elif isinstance(value_node, ast.UnaryOp):
-            if not (
-                isinstance(value_node.op, ast.USub)
-                or isinstance(value_node.op, ast.UAdd)
-                or isinstance(value_node.op, ast.Not)
-            ):
-                raise self.exception(
-                    "Only +/- unary operators supported.", node=value_node
-                )  # no way to test, afaik
-            return self.get_type_from_value(value_node.operand)
-        elif isinstance(value_node, ast.Compare) or isinstance(value_node, ast.BoolOp):
+    def get_type_from_constant(self, value_node):
+        value = value_node.value
+        if isinstance(value, bool):
             return "bool"
-        elif isinstance(value_node, ast.Name):
-            target = self.scoped_sym(value_node.id)
-            return self.find_type(target)
-        elif isinstance(value_node, ast.BinOp):
-            l_type = self.get_type_from_value(value_node.left)
-            ltype = l_type if l_type.find(":") < 0 else l_type.split(":")[1]
-            r_type = self.get_type_from_value(value_node.right)
-            rtype = r_type if r_type.find(":") < 0 else r_type.split(":")[1]
-            if ltype != rtype:
-                raise self.exception(
-                    "We do not support different types on binary operators.",
-                    node=value_node,
-                )  # tested
-            return l_type
-        elif (
-            isinstance(value_node, ast.List)
-            or isinstance(value_node, ast.Tuple)
-            or (
-                isinstance(value_node, ast.Call)
-                and value_node.func.id in ("list", "tuple",)
-            )
-        ):
-            if isinstance(value_node, ast.Call):
-                elem_list = value_node.args
-            else:
-                elem_list = value_node.elts
-            list_size = len(elem_list)
-            if list_size == 0:
-                raise self.exception(
-                    "Empty lists not supported yet", node=value_node
-                )  # tested
-            t_el0 = self.get_type_from_value(elem_list[0])
-            same_as_el0 = [self.get_type_from_value(x) == t_el0 for x in elem_list]
-            if not all(same_as_el0):
-                raise self.exception(
-                    "Only homogeneous lists and tuples are supported.", node=value_node
-                )  # tested
+        elif isinstance(value, int):
+            return "int"
+        elif isinstance(value, str):
+            return "str"
+        elif isinstance(value, float):
+            return "float"
+        else:
+            raise self.exception(
+                f"Unsupported constant value type: {value}", node=value_node
+            )  # TODO: how to test this???
 
-            return f"list:{list_size}:{t_el0}"
+    def get_type_from_unaryop(self, value_node):
+        op = value_node.op
+        if (
+                isinstance(op, ast.USub)
+                or isinstance(op, ast.UAdd)
+                or isinstance(op, ast.Not)
+        ):
+            return self.get_type_from_value(value_node.operand)
+        else:
+            raise self.exception(
+                "Only +/-/not unary operators are supported.", node=value_node
+            )  # no way to test, afaik
+
+    def get_type_from_binop(self, value_node):
+        l_type = self.get_type_from_value(value_node.left)
+        ltype = l_type if l_type.find(":") < 0 else l_type.split(":")[1]
+        r_type = self.get_type_from_value(value_node.right)
+        rtype = r_type if r_type.find(":") < 0 else r_type.split(":")[1]
+        if ltype != rtype:
+            raise self.exception(
+                "We do not support different types on binary operators.",
+                node=value_node,
+            )  # tested
+        return l_type
+
+    def get_type_from_iterable(self, node, elem_list):
+        list_size = len(elem_list)
+        if list_size == 0:
+            raise self.exception("Empty lists not supported yet", node=node)  # tested
+        t_el0 = self.get_type_from_value(elem_list[0])
+        same_as_el0 = [self.get_type_from_value(x) == t_el0 for x in elem_list]
+        if not all(same_as_el0):
+            raise self.exception(
+                "Only homogeneous lists and tuples are supported.", node=node
+            )  # tested
+        return f"list:{list_size}:{t_el0}"
+
+    def get_type_from_value(self, vnode):
+        if isinstance(vnode, ast.Constant):
+            return self.get_type_from_constant(vnode)
+        elif isinstance(vnode, ast.UnaryOp):
+            return self.get_type_from_unaryop(vnode)
+        elif isinstance(vnode, ast.Compare) or isinstance(vnode, ast.BoolOp):
+            return "bool"
+        elif isinstance(vnode, str):
+            return "str"
+        elif isinstance(vnode, ast.Name):
+            return self.find_type(self.scoped_sym(vnode.id))
+        elif isinstance(vnode, ast.BinOp):
+            return self.get_type_from_binop(vnode)
+        elif isinstance(vnode, ast.List) or isinstance(vnode, ast.Tuple):
+            return self.get_type_from_iterable(vnode, vnode.elts)
+        elif isinstance(vnode, ast.Call) and vnode.func.id in ("list", "tuple",):
+            return self.get_type_from_iterable(vnode, vnode.args)
+        elif isinstance(vnode, ast.Call):
+            if vnode.func.id in self.builtin_typecall_names:
+                return self.get_type_from_builtin_typecall(vnode)
+            return self.find_type(vnode.func.id)
         # elif isinstance(value_node, ast.Dict):
         #     key_type = self.validate_same_type(value_node.keys, "key")
         #     val_type = self.validate_same_type(value_node.values, "value")
         #     return f"dict_t:{key_type}:{val_type}"
-        elif isinstance(value_node, str):
-            return "str"
-        elif isinstance(value_node, ast.Call):
-            if value_node.func.id in self.builtin_typecall_names:
-                return self.get_type_from_builtin_typecall(value_node)
-            return self.find_type(value_node.func.id)
-        else:
-            raise self.exception(
-                f"Cannot obtain type information from unexpected node of type {value_node}",
-                node=value_node,
-            )  # tested
+        # If we got here - it's unhandled...
+        raise self.exception(
+            f"Cannot obtain type information from unexpected node of type {vnode}",
+            node=vnode,
+        )  # tested
 
     def get_type_from_builtin_typecall(self, value_node):
         builtin = value_node.func.id
@@ -151,11 +152,10 @@ class SymbolPass(ScopeTracker):
             raise self.exception(
                 f"Symbol {s_name} already has a type associated with it,"
             )
-
         self.types[scoped_sym] = s_type
 
     def set_func_ret_type(self, symbol, new_type):
-        if not symbol in self.types:
+        if symbol not in self.types:
             raise self.exception(
                 f"Trying to update function '{symbol}' return value type to '{new_type}' but function is not known"
             )
@@ -175,12 +175,10 @@ class SymbolPass(ScopeTracker):
                 f"Variable {var_name} annotated as being of type {var_type} "
                 f"but it is already known as being of type {known_type}",
             )
-
         if self.is_known_in_scope(var_name):
             raise self.exception(
                 f"Variable {var_name} is already known in scope {self.current_scope()}",
             )
-
         self.add_symbol_to_scope(scoped_target)
         self.add_scoped_symbol_type(scoped_target, var_type)
 
@@ -225,6 +223,8 @@ class SymbolPass(ScopeTracker):
         else:
             return symbol
 
+    #=== Visit functions from here ===#
+
     def visit_Global(self, node):
         this_scope = self.current_scope()
         this_scope_symbols = self.symbols.get(this_scope, set())
@@ -234,6 +234,17 @@ class SymbolPass(ScopeTracker):
     def visit_AnnAssign(self, node):
         """Assignment with annotation"""
         self.handle_annotated_variable(node.target.id, node.annotation.id)
+
+    def visit_For(self, node):
+        scoped_target_symbol = self.scoped_sym(node.target.id)
+        if len(node.iter.elts) == 0:
+            return
+        scoped_target_type = self.get_type_from_value(node.iter.elts[0])
+        self.validate_same_type(node.iter.elts, f"for {node.target.id} in ...")
+        if scoped_target_symbol not in self.symbols:
+            self.add_symbol_to_scope(scoped_target_symbol)
+        if scoped_target_symbol not in self.types:
+            self.add_scoped_symbol_type(scoped_target_symbol, scoped_target_type)
 
     def visit_Assign(self, node):
         """Assignment without annotation:

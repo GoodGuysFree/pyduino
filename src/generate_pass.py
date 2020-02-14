@@ -246,6 +246,43 @@ class GeneratePass(ScopeTracker):
                 self.outdent()
                 self.output("}\n", indent=True)
 
+    def visit_For(self, node):
+        target_var_name = node.target.id
+        python_var_type = self.syms.find_type(self.scoped_sym(target_var_name))
+        target_var_type = python_type_to_c_type[python_var_type]
+        loop_list = node.iter.elts
+        loop_list_len = len(loop_list)
+        self.output("{\n", indent=True)
+        self.indent()
+        # Declare temp array
+        self.output(
+            f"{target_var_type} _temp_array[{loop_list_len}] = " + "{ ",
+            indent=True,
+        )
+        for item in loop_list:
+            value = self.visit(item)
+            if python_var_type == 'str':
+                value = f'string({value})'
+            self.output(f'{value}, ')
+        self.output("};\n")
+        # Declare index var
+        self.output("int _temp_index;\n", indent=True)
+        # Output the loop
+        self.output(f'for (_temp_index = 0; _temp_index < {loop_list_len}; _temp_index++)' + ' {\n', indent=True)
+        self.indent()
+        self.output(f'{target_var_name} = _temp_array[_temp_index];\n', indent=True)
+        s = ''
+        for item in node.body:
+            ret = self.visit(item)
+            if ret is not None:
+                s += str(ret)
+        if len(s) > 0:
+            self.output(s, indent=True)
+        self.outdent()
+        self.output("}\n", indent=True)
+        self.outdent()
+        self.output("}\n", indent=True)
+
     def visit_Compare(self, node):
         if len(node.comparators) != 1 or len(node.ops) != 1:
             raise self.exception(f"Only simple binary comparisons are supported")
