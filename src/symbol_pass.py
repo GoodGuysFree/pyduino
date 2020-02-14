@@ -110,10 +110,6 @@ class SymbolPass(ScopeTracker):
             if vnode.func.id in self.builtin_typecall_names:
                 return self.get_type_from_builtin_typecall(vnode)
             return self.find_type(vnode.func.id)
-        # elif isinstance(value_node, ast.Dict):
-        #     key_type = self.validate_same_type(value_node.keys, "key")
-        #     val_type = self.validate_same_type(value_node.values, "value")
-        #     return f"dict_t:{key_type}:{val_type}"
         # If we got here - it's unhandled...
         raise self.exception(
             f"Cannot obtain type information from unexpected node of type {vnode}",

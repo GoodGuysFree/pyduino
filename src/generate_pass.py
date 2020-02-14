@@ -116,8 +116,6 @@ class GeneratePass(ScopeTracker):
         selector = parts[0]
         if selector == "list":
             self.emit_list_decl(parts, symbol)
-        # elif selector == "dict_t":
-        #     self.output(f"dict_t {symbol};\n", indent=True)
         else:
             raise self.exception(f"Unknown advanced type description {adv_type=}")
 
@@ -147,18 +145,6 @@ class GeneratePass(ScopeTracker):
             return "tuple"
         raise self.exception("Unhandled case")
 
-    # def prep_dict_key(self, key, key_type):
-    #     if key_type == 'int':
-    #         return f"((void*)({key}))"
-    #     else:
-    #         raise self.exception(f"Keys of type {key_type} not supported for dictionaries.")
-    #
-    # def prep_dict_val(self, val, val_type):
-    #     if val_type == 'int':
-    #         return f"((void*)({val}))"
-    #     else:
-    #         raise self.exception(f"Values of type {val_type} not supported for dictionaries.")
-
     #
     # Visit Functions
     #
@@ -171,27 +157,6 @@ class GeneratePass(ScopeTracker):
             self.output(MODULE_HEADING + "\n")
         self.emit_scope_local_decls()
         self.generic_visit(node)
-
-    # def visit_Dict(self, node):
-    #     # This is hard... We need to use GCC's expression block ({ .. })
-    #     this_dict_types = self.syms.get_type_from_value(node)
-    #     _, key_type, val_type = this_dict_types.split(":")
-    #     s = "({\n"
-    #     self.indent()
-    #     key_c_type = python_type_to_c_type[key_type]
-    #     s += self.indented(f"dict_t ret = ht_create(DEFAULT_DICT_SIZE, sizeof({key_c_type}));\n")
-    #     # TODO: emit code to handle NULL return from ht_create()
-    #     for idx in range(len(node.keys)):
-    #         key = self.visit(node.keys[idx])
-    #         val = self.visit(node.values[idx])
-    #         # Assuming int for now...
-    #         key_s = self.prep_dict_key(key, key_type)
-    #         val_s = self.prep_dict_val(val, val_type)
-    #         s += self.indented(f"ht_put(ret, {key_s}, {val_s});\n")
-    #     s += self.indented("ret;\n")
-    #     s += self.indented("})")
-    #     self.outdent()
-    #     return s
 
     def visit_FunctionDef(self, node):
         # Passing node into self.syms methods for exception handling
