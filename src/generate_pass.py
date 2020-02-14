@@ -179,16 +179,13 @@ class GeneratePass(ScopeTracker):
         self.output("}\n\n\n")
 
     def visit_If(self, node):
-        s = "if "
-        s += self.visit(node.test)
-        s += " {\n"
+        s = "if " + self.visit(node.test) + " {\n"
         self.output(s, indent=True)
         self.indent()
         s = ""
         for item in node.body:
             ret = self.visit(item)
-            if ret is not None:
-                s += str(ret)
+            s = s if ret is None else s + str(ret)
         if len(s) > 0:
             self.output(s)
         self.outdent()
@@ -204,8 +201,7 @@ class GeneratePass(ScopeTracker):
                 s = ""
                 for item in node.orelse:
                     ret = self.visit(item)
-                    if ret is not None:
-                        s += str(ret)
+                    s = s if ret is None else s + str(ret)
                 if len(s) > 0:
                     self.output(s)
                 self.outdent()
@@ -463,8 +459,7 @@ class GeneratePass(ScopeTracker):
                         if DEBUG_SHOW_NODES:
                             print(f"Going to visit list item {item.__class__.__name__}")
                         ret = self.visit(item)
-                        if ret is not None:
-                            s += str(ret)
+                        s = s if ret is None else s + str(ret)
             elif isinstance(value, AST):
                 if DEBUG_SHOW_NODES:
                     print(f"Going to visit value {value.__class__.__name__}")
