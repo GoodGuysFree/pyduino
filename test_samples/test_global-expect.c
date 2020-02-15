@@ -1,10 +1,11 @@
 int g_var1;
 int g_var2;
+void test(void);
 
 g_var1 = 4;
 g_var2 = 5;
 
-void test() {
+void test(void) {
     int g_var2;
 
     print(g_var1);

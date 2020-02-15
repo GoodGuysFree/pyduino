@@ -64,8 +64,11 @@ later time, i.e. when we see the first assignment to the variable.
 
 ### Second Pass - Generation
 During the second pass, the first AST element we encounter is the Module. This lets us
-add C `#include` directives, and emit declarations for all global variables. In this pass
-we also track the scope we're in, in the same way as we do in the first pass.
+add C `#include` directives, and emit declarations for all global variables. We also need
+to emit forward function declarations. In this pass we also track the scope we're in, in
+the same way as we do in the first pass.
+Any global function calls, assignments, expressions, etc, have to be collected and emitted
+later into the "setup()" function.
 
 
 Strings

@@ -110,14 +110,40 @@ class GeneratePass(ScopeTracker):
         list_size = parts[1]
         self.output(f"{elem_type} {symbol}[{list_size}];\n", indent=True)
 
+    def emit_func_forward_decl(self, adv_type, symbol):
+        parts = adv_type.split(":")
+        ret_type = python_type_to_c_type[parts[1]]
+        self.output(f"{ret_type} {symbol}(", indent=True)
+        func_args = self.syms.find_function_args(self.scoped_sym(symbol)) or []
+        for arg in func_args:
+            delim = ", " if arg != func_args[-1] else ""
+            self.emit_single_local_decl(arg, delimiter=delim)
+        if len(func_args) == 0:
+            self.output("void")
+        self.output(");\n")
+
     def emit_advanced_decl(self, adv_type, symbol):
-        assert ":" in adv_type
+        if adv_type == "func":  # function with no known return type - emit void return
+            adv_type = "func:void"
         parts = adv_type.split(":")
         selector = parts[0]
         if selector == "list":
             self.emit_list_decl(parts, symbol)
+        elif selector == "func":
+            self.emit_func_forward_decl(adv_type, symbol)
         else:
             raise self.exception(f"Unknown advanced type description {adv_type=}")
+
+    def emit_single_local_decl(self, name, delimiter=";\n"):
+        local_name = self.syms.unscoped_sym(name)
+        local_type = self.syms.find_type(name, self.current_node)
+        if ":" in local_type or local_type.startswith(
+            "func"
+        ):  # advanced types, like list:int etc.
+            self.emit_advanced_decl(local_type, local_name)
+        else:
+            c_type = python_type_to_c_type[local_type]
+            self.output(f"{c_type} {local_name}{delimiter}", indent=True)
 
     def emit_scope_local_decls(self):
         # Passing self.current_node into self.syms methods for exception handling
@@ -126,14 +152,8 @@ class GeneratePass(ScopeTracker):
         )
         if len(local_syms) > 0 and self.current_scope() != "" and self.headings:
             self.output("/* Local Variable Declarations */\n", indent=True)
-        for name in sorted(local_syms):
-            local_name = self.syms.unscoped_sym(name)
-            local_type = self.syms.find_type(name, self.current_node)
-            if ":" in local_type:  # advanced types, like list:int etc.
-                self.emit_advanced_decl(local_type, local_name)
-            else:
-                c_type = python_type_to_c_type[local_type]
-                self.output(f"{c_type} {local_name};\n", indent=True)
+        for name in local_syms:
+            self.emit_single_local_decl(name)
         if len(local_syms) > 0:
             self.output("\n")
 
@@ -217,22 +237,25 @@ class GeneratePass(ScopeTracker):
         self.indent()
         # Declare temp array
         self.output(
-            f"{target_var_type} _temp_array[{loop_list_len}] = " + "{ ",
-            indent=True,
+            f"{target_var_type} _temp_array[{loop_list_len}] = " + "{ ", indent=True,
         )
         for item in loop_list:
             value = self.visit(item)
-            if python_var_type == 'str':
-                value = f'string({value})'
-            self.output(f'{value}, ')
+            if python_var_type == "str":
+                value = f"string({value})"
+            self.output(f"{value}, ")
         self.output("};\n")
         # Declare index var
         self.output("int _temp_index;\n", indent=True)
         # Output the loop
-        self.output(f'for (_temp_index = 0; _temp_index < {loop_list_len}; _temp_index++)' + ' {\n', indent=True)
+        self.output(
+            f"for (_temp_index = 0; _temp_index < {loop_list_len}; _temp_index++)"
+            + " {\n",
+            indent=True,
+        )
         self.indent()
-        self.output(f'{target_var_name} = _temp_array[_temp_index];\n', indent=True)
-        s = ''
+        self.output(f"{target_var_name} = _temp_array[_temp_index];\n", indent=True)
+        s = ""
         for item in node.body:
             ret = self.visit(item)
             if ret is not None:
@@ -266,6 +289,8 @@ class GeneratePass(ScopeTracker):
         self.num_arguments = 0
         self.output("(")
         self.generic_visit(node)
+        if self.num_arguments == 0:
+            self.output("void")
         self.output(") {\n")
         self.emit_scope_local_decls()
         if self.headings:

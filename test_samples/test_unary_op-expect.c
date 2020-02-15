@@ -1,7 +1,7 @@
-int also;
-int another;
-int other;
 int var;
+int other;
+int another;
+int also;
 
 var = 1;
 other = -1;

@@ -1,3 +1,6 @@
+void setup(void);
+void loop(void);
+
 /*
   AnalogReadSerial
 
@@ -10,13 +13,13 @@
   http://www.arduino.cc/en/Tutorial/AnalogReadSerial
  */
 
-void setup() {
+void setup(void) {
     Serial.begin(9600);
 }
 
 
 
-void loop() {
+void loop(void) {
     int sensorValue;
 
     sensorValue = analogRead(A0);

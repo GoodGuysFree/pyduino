@@ -12,7 +12,7 @@ class SymbolPass(ScopeTracker):
         super().__init__(lines)
         # self.symbols: dictionary with:
         #   key = scope
-        #   value = set of scoped symbol-names in this scope
+        #   value = array of scoped symbol-names in this scope
         self.symbols = {}
         self.types = {}  # key = scoped-symbol, value = python type
         self.func_args = (
@@ -128,8 +128,9 @@ class SymbolPass(ScopeTracker):
             this_scope = self.current_scope()
         else:
             this_scope = scope
-        scope_symbols = self.symbols.get(this_scope, set())
-        scope_symbols.add(symbol)
+        scope_symbols = self.symbols.get(this_scope, [])
+        if symbol not in scope_symbols:
+            scope_symbols.append(symbol)
         self.symbols[this_scope] = scope_symbols
 
     def is_known_in_scope(self, symbol, scope=None):
@@ -137,7 +138,7 @@ class SymbolPass(ScopeTracker):
             this_scope = self.current_scope()
         else:
             this_scope = scope
-        return symbol in self.symbols.get(this_scope, set())
+        return symbol in self.symbols.get(this_scope, [])
 
     def is_known_global(self, symbol):
         return self.is_known_in_scope(symbol, self.current_scope())
@@ -179,12 +180,15 @@ class SymbolPass(ScopeTracker):
         self.add_scoped_symbol_type(scoped_target, var_type)
 
     def find_local_syms(self, scope, include_function_args=True):
-        scope_syms = self.symbols.get(scope, set())
+        scope_syms = self.symbols.get(scope, [])
         if not include_function_args:
             scope_syms = [
                 x for x in scope_syms if x not in self.func_args.get(scope, set())
             ]
-        return set([x for x in scope_syms if x.startswith(scope)])
+        return [x for x in scope_syms if x.startswith(scope)]
+
+    def find_function_args(self, funcname):
+        return self.func_args.get(funcname)
 
     def find_type(self, symbol, node=None):
         if symbol in self.types:
@@ -223,8 +227,10 @@ class SymbolPass(ScopeTracker):
 
     def visit_Global(self, node):
         this_scope = self.current_scope()
-        this_scope_symbols = self.symbols.get(this_scope, set())
-        this_scope_symbols.update(node.names)
+        this_scope_symbols = self.symbols.get(this_scope, [])
+        for name in node.names:
+            if name not in this_scope_symbols:
+                this_scope_symbols.append(name)
         self.symbols[this_scope] = this_scope_symbols
 
     def visit_AnnAssign(self, node):
@@ -273,6 +279,7 @@ class SymbolPass(ScopeTracker):
             self.add_scoped_symbol_type(
                 func_name, "func",
             )  # In this case we will try in visit_Return
+        self.add_symbol_to_scope(func_name)
 
         self.enter_scope(func_name)
         self.generic_visit(node)  # visit all children of this node

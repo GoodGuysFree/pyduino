@@ -42,6 +42,7 @@ ret2 = "Assign: " + func("foo" + global_string, ret1)
 '''
 advanced_string_test_c = """
 string global_string;
+string func(string v1, string v2);
 string ret1;
 string ret2;
 

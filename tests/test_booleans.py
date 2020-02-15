@@ -18,7 +18,9 @@ simple_bool_annotation_py = """def boolfunc(var1 : bool) -> bool:
     return False
 """
 
-simple_bool_annotation_c = """
+simple_bool_annotation_c = """bool boolfunc(bool var1);
+
+
 bool boolfunc(bool var1) {
     return (false);
 }
@@ -46,9 +48,10 @@ b = 4
 a = 3
 c = b < a
 """
-boolean_op_result_assignment_c = """int a;
-int b;
+boolean_op_result_assignment_c = """
 bool c;
+int b;
+int a;
 
 c = (6 < 3);
 b = 4;

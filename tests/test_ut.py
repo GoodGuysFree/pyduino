@@ -100,8 +100,10 @@ def func():
     """docstring"""
     pass
 ''',
-        """
-void func() {
+        """void func(void);
+
+
+void func(void) {
     /* docstring */
 }""",
     )

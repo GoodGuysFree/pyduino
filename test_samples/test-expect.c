@@ -1,5 +1,7 @@
 int amit;
 int omri;
+void setup(int a, int b);
+void loop(void);
 
 amit = 8;
 omri = 3;
@@ -17,7 +19,7 @@ void setup(int a, int b) {
 
 
 
-void loop() {
+void loop(void) {
     delay(1000);
     Serial.println("Ahem...");
 }
