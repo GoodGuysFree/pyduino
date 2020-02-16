@@ -21,6 +21,10 @@ binop_to_string_dict = {
     ast.GtE: ">=",
     ast.Eq: "==",
     ast.NotEq: "!=",
+    ast.Mod: "%",
+    ast.BitOr: "|",
+    ast.BitAnd: "&",
+    ast.BitXor: "^",
 }
 
 boolop_to_string_dict = {
@@ -76,7 +80,10 @@ class GeneratePass(ScopeTracker):
     def binop_to_string(self, obj_or_class):
         ret = binop_to_string_dict.get(obj_or_class, None)
         if ret is None:
-            return binop_to_string_dict[obj_or_class.__class__]
+            ret = binop_to_string_dict.get(obj_or_class.__class__, None)
+        if ret is None:
+            raise self.exception(f'Unsupported binary operator {obj_or_class}')
+        return ret
 
     def indented(self, s):
         return " " * self.indent_level + s
