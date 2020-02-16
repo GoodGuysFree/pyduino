@@ -199,6 +199,8 @@ class GeneratePass(ScopeTracker):
         self.output("}\n\n\n")
 
     def visit_If(self, node):
+        if self.current_scope() == "":
+            raise self.exception(f"You should not put executable code outside of functions.")
         s = "if " + self.visit(node.test) + " {\n"
         self.output(s, indent=True)
         self.indent()
@@ -213,7 +215,7 @@ class GeneratePass(ScopeTracker):
             self.output("}\n", indent=True)
         else:
             if len(node.orelse) == 1 and isinstance(node.orelse[0], ast.If):  # elif
-                self.output("} else ")
+                self.output("} else ", indent=True)
                 self.visit_If(node.orelse[0])
             else:
                 self.output("} else {\n", indent=True)
@@ -228,6 +230,8 @@ class GeneratePass(ScopeTracker):
                 self.output("}\n", indent=True)
 
     def visit_For(self, node):
+        if self.current_scope() == "":
+            raise self.exception(f"You should not put executable code outside of functions.")
         target_var_name = node.target.id
         python_var_type = self.syms.find_type(self.scoped_sym(target_var_name))
         target_var_type = python_type_to_c_type[python_var_type]
