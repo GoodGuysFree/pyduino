@@ -45,3 +45,22 @@ c = (37 ^ 5);
 def test_orandxor():
     pos_test(orandxor_py, orandxor_c)
 
+
+def test_ifelse_expr():
+    pos_test('''b=4
+a=5 if b == 4 else 3''', '''int b;
+int a;
+
+b = 4;
+a = ((b == 4) ? 5 : 3);''')
+
+
+def test_ifelse_expr_diff_types():
+    neg_test('''b=4
+a=5 if b == 4 else "3"''', '''In line 2: [a=5 if b == 4 else "3"] Using if-expressions can only support same types''')
+
+
+def test_shift_expr():
+    pos_test('''a = (1 << 3) + (8 << 1)''', '''int a;
+
+a = ((1 << 3) + (8 << 1));''')

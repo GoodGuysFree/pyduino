@@ -89,6 +89,13 @@ class SymbolPass(ScopeTracker):
             )  # tested
         return f"list:{list_size}:{t_el0}"
 
+    def get_type_from_ifexpr(self, vnode):
+        body_type = self.get_type_from_value(vnode.body)
+        else_type = self.get_type_from_value(vnode.orelse)
+        if body_type != else_type:
+            raise self.exception("Using if-expressions can only support same types")
+        return body_type
+
     def get_type_from_value(self, vnode):
         if isinstance(vnode, ast.Constant):
             return self.get_type_from_constant(vnode)
@@ -110,6 +117,8 @@ class SymbolPass(ScopeTracker):
             if vnode.func.id in self.builtin_typecall_names:
                 return self.get_type_from_builtin_typecall(vnode)
             return self.find_type(vnode.func.id)
+        elif isinstance(vnode, ast.IfExp):
+            return self.get_type_from_ifexpr(vnode)
         # If we got here - it's unhandled...
         raise self.exception(
             f"Cannot obtain type information from unexpected node of type {vnode}",

@@ -25,6 +25,8 @@ binop_to_string_dict = {
     ast.BitOr: "|",
     ast.BitAnd: "&",
     ast.BitXor: "^",
+    ast.LShift: "<<",
+    ast.RShift: ">>",
 }
 
 boolop_to_string_dict = {
@@ -204,6 +206,16 @@ class GeneratePass(ScopeTracker):
         self.outdent()
         self.exit_scope(func_name)
         self.output("}\n\n\n")
+
+    def visit_IfExp(self, node):
+        s = "("
+        s += self.visit(node.test)
+        s += " ? "
+        s += str(self.visit(node.body))
+        s += " : "
+        s += str(self.visit(node.orelse))
+        s += ")"
+        return s
 
     def visit_If(self, node):
         if self.current_scope() == "":
