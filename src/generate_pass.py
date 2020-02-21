@@ -504,6 +504,26 @@ class GeneratePass(ScopeTracker):
             s += ")"
         return s
 
+    def visit_Subscript(self, node):
+        symbol = node.value.id
+        scoped_sym = self.scoped_sym(symbol)
+        symtype = self.syms.find_type(scoped_sym)
+        if node.slice.step is not None:
+            raise self.exception(f'Stepped slice not supported')
+        if symtype == 'str':
+            s = symbol + ".substr("
+            slice_lower = self.visit(node.slice.lower)
+            s += f'{slice_lower}'
+            slice_upper = self.visit(node.slice.upper)
+            if isinstance(slice_upper, str) and slice_upper[0] == '-':
+                s += f', ({symbol}.size(){slice_upper}-{slice_lower})'
+            else:
+                s += f', ({slice_upper}-{slice_lower})'
+            s += ")"
+            return s
+        else:
+            raise self.exception(f'Unable to use [] on {symbol} which is of type {symtype}')
+
     def visit(self, node):
         """Visit a node."""
         method = "visit_" + node.__class__.__name__

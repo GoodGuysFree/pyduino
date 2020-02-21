@@ -124,6 +124,8 @@ class SymbolPass(ScopeTracker):
             return self.find_type(vnode.func.id)
         elif isinstance(vnode, ast.IfExp):
             return self.get_type_from_ifexpr(vnode)
+        elif isinstance(vnode, ast.Subscript):
+            return self.find_type(self.scoped_sym(vnode.value.id))
         # If we got here - it's unhandled...
         raise self.exception(
             f"Cannot obtain type information from unexpected node of type {vnode}",

@@ -65,3 +65,31 @@ def test_advanced_strings():
 
 def test_str_builtin():
     pos_test("a = str(6)", 'String a;\n\na = String("6");')
+
+
+def test_string_slices():
+    pos_test('''a = "amit margalit"
+b = a[2:-3]
+c = 1
+b = a[c:6]''', '''String a;
+String b;
+int c;
+
+a = String("amit margalit");
+b = a.substr(2, (a.size()-3-2));
+c = 1;
+b = a.substr(c, (6-c));
+''')
+
+def test_advanced_slice1():
+    pos_test('''a = "amit margalit"
+b = a[1:2]
+i = 4;
+b = a[i:i+1]''','''String a;
+String b;
+int i;
+
+a = String("amit margalit");
+b = a.substr(1, (2-1));
+i = 4;
+b = a.substr(i, ((i + 1)-i));''')
