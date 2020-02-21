@@ -36,10 +36,10 @@ test2_c = '''void looptest(void);
 
 
 void looptest(void) {
-    string x;
+    String x;
 
     {
-        string _temp_array[3] = { string("foo"), string("bar"), string("3"), };
+        String _temp_array[3] = { String("foo"), String("bar"), String("3"), };
         int _temp_index;
         for (_temp_index = 0; _temp_index < 3; _temp_index++) {
             x = _temp_array[_temp_index];

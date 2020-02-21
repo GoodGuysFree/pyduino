@@ -18,6 +18,8 @@ class SymbolPass(ScopeTracker):
         self.func_args = (
             {}
         )  # key = scoped function symbol, value = scoped argument name
+        self.initializer = {}  # key = scoped sym, val = initializer object list
+        self.current_target = None
         self.lines = lines
 
         # Run the tree
@@ -87,6 +89,9 @@ class SymbolPass(ScopeTracker):
             raise self.exception(
                 "Only homogeneous lists and tuples are supported.", node=node
             )  # tested
+        symbol = self.current_target
+        scoped = self.scoped_sym(symbol)
+        self.initializer[scoped] = elem_list
         return f"list:{list_size}:{t_el0}"
 
     def get_type_from_ifexpr(self, vnode):
@@ -263,6 +268,7 @@ class SymbolPass(ScopeTracker):
            If existing, try to check if the type is the same. In C we can't change types..."""
         for target in node.targets:
             tgt_id = target.id
+            self.current_target = tgt_id
             tgt_ty = self.get_type_from_value(node.value)
             if self.is_known_global(tgt_id):
                 scoped_target = tgt_id
@@ -277,6 +283,7 @@ class SymbolPass(ScopeTracker):
                     f"Assignment to a new different type is not supported."
                     + f" {scoped_target} is of type {known_type} and is assigned a value of type {tgt_ty}"
                 )
+            self.current_target = None
 
     def visit_FunctionDef(self, node):
         func_name = node.name

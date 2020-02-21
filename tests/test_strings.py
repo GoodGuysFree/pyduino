@@ -2,16 +2,16 @@ from tests.test_ut import pos_test, neg_test
 
 
 def test_simple_declaration():
-    pos_test("a = ''", 'string a;\n\na = string("");')
+    pos_test("a = ''", 'String a;\n\na = String("");')
 
 
 def test_annotated_declaration():
-    pos_test("a : str = ''", 'string a;\n\na = string("");')
+    pos_test("a : str = ''", 'String a;\n\na = String("");')
 
 
 def test_assign_value():
     pos_test(
-        "a = 'foo'\na = 'bar'", 'string a;\n\na = string("foo");\na = string("bar");\n'
+        "a = 'foo'\na = 'bar'", 'String a;\n\na = String("foo");\na = String("bar");\n'
     )
 
 
@@ -25,7 +25,7 @@ def test_assign_wrong_type():
 def test_assign_plus_op():
     pos_test(
         code='a = "amit" + " margalit"',
-        expected_output='string a;\n\na = (string("amit") + string(" margalit"));\n',
+        expected_output='String a;\n\na = (String("amit") + String(" margalit"));\n',
     )
 
 
@@ -41,21 +41,21 @@ ret1 = global_string + func("foo", "bar")
 ret2 = "Assign: " + func("foo" + global_string, ret1)
 '''
 advanced_string_test_c = """
-string global_string;
-string func(string v1, string v2);
-string ret1;
-string ret2;
+String global_string;
+String func(String v1, String v2);
+String ret1;
+String ret2;
 
-global_string = string("Amit Margalit");
+global_string = String("Amit Margalit");
 
-string func(string v1, string v2) {
+String func(String v1, String v2) {
     /* Simple Docstring */
     return (((v1 + " = ") + v2));
 }
 
 
-ret1 = (global_string + func(string("foo"), string("bar")));
-ret2 = (string("Assign: ") + func((string("foo") + global_string), ret1));
+ret1 = (global_string + func(String("foo"), String("bar")));
+ret2 = (String("Assign: ") + func((String("foo") + global_string), ret1));
 """
 
 
@@ -64,4 +64,4 @@ def test_advanced_strings():
 
 
 def test_str_builtin():
-    pos_test("a = str(6)", 'string a;\n\na = string("6");')
+    pos_test("a = str(6)", 'String a;\n\na = String("6");')

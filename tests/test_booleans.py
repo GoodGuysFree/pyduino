@@ -73,4 +73,4 @@ def test_boolean_not_assignment():
 
 
 def test_bool_lst_assignment():
-    pos_test("a = [True, False]", "bool a[2];\n\na = [true, false];")
+    pos_test("a = [True, False]", "bool a[2] = { true, false };")
